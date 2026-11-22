@@ -86,7 +86,7 @@ jobs:
       contents: read
     strategy:
       matrix:
-        device_type: [ultra, lite]
+        device_type: [ultra]
     steps:
       - name: Check out the repo
         uses: actions/checkout@v7
