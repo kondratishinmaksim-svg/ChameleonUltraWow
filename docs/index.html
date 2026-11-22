@@ -50,7 +50,7 @@
       display: flex;
       flex-direction: column;
       align-items: center;
-      padding: 12px 12px 100px;
+      padding: 12px 12px 110px;
     }
 
     .app-shell {
@@ -233,16 +233,19 @@
       border-radius: var(--radius-full);
       padding: 4px;
       gap: 4px;
+      overflow-x: auto;
+      scrollbar-width: none;
     }
+    .segmented-bar::-webkit-scrollbar { display: none; }
 
     .segmented-btn {
-      flex: 1;
-      padding: 10px 8px;
+      flex: 1 0 auto;
+      padding: 10px 12px;
       border-radius: var(--radius-full);
       background: transparent;
       border: none;
       color: var(--md-sys-color-on-surface-variant);
-      font-size: 0.85rem;
+      font-size: 0.82rem;
       font-weight: 600;
       cursor: pointer;
       display: flex;
@@ -250,6 +253,7 @@
       justify-content: center;
       gap: 6px;
       transition: all 0.25s cubic-bezier(0.2, 0, 0, 1);
+      white-space: nowrap;
     }
 
     .segmented-btn.active {
@@ -395,6 +399,37 @@
       border: 3px solid var(--md-sys-color-on-primary);
     }
 
+    /* POWER TOGGLE ROW */
+    .power-dual-row {
+      display: flex;
+      gap: 12px;
+      background: var(--md-sys-color-surface-container-high);
+      padding: 12px;
+      border-radius: var(--radius-md);
+      border: 1px solid var(--md-sys-color-outline-variant);
+    }
+    .power-dual-col {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      gap: 6px;
+    }
+    .power-dual-col label {
+      font-size: 0.8rem;
+      color: var(--md-sys-color-on-surface-variant);
+      font-weight: 600;
+    }
+    .power-dual-col select {
+      background: var(--md-sys-color-surface-container-highest);
+      color: #fff;
+      border: 1px solid var(--md-sys-color-outline-variant);
+      border-radius: var(--radius-sm);
+      padding: 10px;
+      font-size: 0.85rem;
+      font-weight: 600;
+      outline: none;
+    }
+
     /* BOTTOM FLOATING ACTION BAR */
     .action-bar-bottom {
       position: fixed;
@@ -442,6 +477,38 @@
       box-shadow: 0 4px 14px rgba(168, 199, 250, 0.35);
     }
 
+    /* TOAST NOTIFICATION */
+    .toast-pill {
+      position: fixed;
+      top: 20px;
+      left: 50%;
+      transform: translateX(-50%) translateY(-100px);
+      background: var(--md-sys-color-primary-container);
+      color: var(--md-sys-color-on-primary-container);
+      border: 1px solid var(--md-sys-color-primary);
+      padding: 12px 24px;
+      border-radius: var(--radius-full);
+      font-size: 0.9rem;
+      font-weight: 700;
+      box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+      z-index: 1000;
+      transition: transform 0.35s cubic-bezier(0.2, 0, 0, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      pointer-events: none;
+    }
+
+    .toast-pill.visible {
+      transform: translateX(-50%) translateY(0);
+    }
+
+    .toast-pill.error {
+      background: rgba(255, 180, 171, 0.2);
+      border-color: var(--md-sys-color-error);
+      color: var(--md-sys-color-error);
+    }
+
     /* TERMINAL CONSOLE */
     .console-card {
       background: var(--md-sys-color-surface-container-lowest);
@@ -474,6 +541,8 @@
   </style>
 </head>
 <body>
+
+<div id="toastPill" class="toast-pill">✅ Сохранено</div>
 
 <div class="app-shell">
   <!-- TOP APP BAR -->
@@ -525,7 +594,7 @@
     </div>
   </div>
 
-  <!-- SEGMENTED TABS -->
+  <!-- SEGMENTED TABS (4 TABS) -->
   <div class="segmented-bar">
     <button class="segmented-btn active" id="tabConnect" onclick="switchSection('connect')">
       💓 Касание
@@ -536,6 +605,9 @@
     <button class="segmented-btn" id="tabDisconnect" onclick="switchSection('disconnect')">
       👋 Убирание
     </button>
+    <button class="segmented-btn" id="tabPower" onclick="switchSection('power')">
+      ⚡ Вкл / Выкл
+    </button>
   </div>
 
   <!-- CONFIGURATION CARD -->
@@ -544,7 +616,19 @@
       💓 Эффект при касании считывателя
     </div>
 
-    <!-- EFFECT GRID -->
+    <!-- POWER EXTRA CONTROLS (ONLY IN POWER TAB) -->
+    <div id="powerControlsRow" class="power-dual-row" style="display: none;">
+      <div class="power-dual-col">
+        <label>⚡ При включении:</label>
+        <select id="powerOnSelect" onchange="onPowerSelectChange()"></select>
+      </div>
+      <div class="power-dual-col">
+        <label>🌙 При выключении:</label>
+        <select id="powerOffSelect" onchange="onPowerSelectChange()"></select>
+      </div>
+    </div>
+
+    <!-- EFFECT GRID (FOR CONNECT / IDLE / DISCONNECT) -->
     <div class="effect-chips-grid" id="effectGrid"></div>
 
     <!-- COLOR SELECTION -->
@@ -557,21 +641,12 @@
     </div>
 
     <!-- SPEED SLIDER -->
-    <div class="slider-container">
+    <div class="slider-container" id="speedContainer">
       <div class="slider-info">
         <span>Скорость анимации</span>
         <span id="speedVal">7</span>
       </div>
       <input type="range" id="speedSlider" min="1" max="10" value="7" oninput="onSpeedInput(this.value)">
-    </div>
-
-    <!-- BRIGHTNESS SLIDER -->
-    <div class="slider-container">
-      <div class="slider-info">
-        <span>Яркость диодов (PWM)</span>
-        <span id="brightVal">90%</span>
-      </div>
-      <input type="range" id="brightSlider" min="10" max="99" value="90" oninput="onBrightInput(this.value)">
     </div>
   </div>
 
@@ -613,20 +688,26 @@ const CMD = {
 };
 
 const EFFECTS = [
-  { id: 10, name: "Пульсация", icon: "💓", desc: "Мягкая белая пульсация" },
+  { id: 10, name: "Пульсация", icon: "💓", desc: "Мягкая пульсация светом" },
   { id: 15, name: "Огонёк", icon: "🔴", desc: "Бегущий огонь Knight Rider" },
   { id: 12, name: "Волна", icon: "🌊", desc: "Плавная волна туда-обратно" },
   { id: 13, name: "Дыхание", icon: "😮‍💨", desc: "Плавное нарастание и затухание" },
   { id: 14, name: "Радуга", icon: "🌈", desc: "Перелив всех цветов спектра" },
-  { id: 21, name: "Полиция", icon: "🚨", desc: "Красно-синий маяк" },
+  { id: 24, name: "Киберпанк", icon: "⚡", desc: "Неоновый дуэт Magenta + Cyan" },
+  { id: 25, name: "Радар", icon: "🎯", desc: "Встречные лучи сходятся в центр" },
+  { id: 26, name: "Аврора", icon: "🌌", desc: "Северное сияние Green-Cyan-Blue" },
+  { id: 27, name: "Глитч", icon: "👾", desc: "Хакерские рваные всполохи" },
+  { id: 28, name: "Гиперлуп", icon: "🚀", desc: "Разгон с яркой белой вспышкой" },
+  { id: 29, name: "Комета", icon: "☄️", desc: "Ядро с затухающим хвостом" },
+  { id: 21, name: "Полиция", icon: "🚨", desc: "Красно-синий проблесковый маяк" },
   { id: 20, name: "Сердце", icon: "🫀", desc: "Двойной реалистичный пульс" },
-  { id: 19, name: "Строб", icon: "⚡", desc: "Ультра-быстрые вспышки" },
+  { id: 19, name: "Строб", icon: "⚡", desc: "Ультра-быстрые яркие вспышки" },
   { id: 22, name: "Огонь", icon: "🔥", desc: "Живое мерцание костра" },
-  { id: 23, name: "Матрица", icon: "🟩", desc: "Бегущий зеленый код" },
-  { id: 16, name: "Искры", icon: "✨", desc: "Случайные яркие искры" },
-  { id: 18, name: "Вспышка", icon: "💥", desc: "Симметрично из центра" },
-  { id: 17, name: "Статичный", icon: "💡", desc: "Постоянное свечение" },
-  { id: 0,  name: "Отключено", icon: "🚫", desc: "Диоды погашены" }
+  { id: 23, name: "Матрица", icon: "🟩", desc: "Бегущий зеленый цифровой код" },
+  { id: 16, name: "Искры", icon: "✨", desc: "Случайные вспышки отдельных диодов" },
+  { id: 18, name: "Вспышка", icon: "💥", desc: "Симметричный взрыв из центра" },
+  { id: 17, name: "Статичный", icon: "💡", desc: "Постоянное ровное свечение" },
+  { id: 0,  name: "Отключено", icon: "🚫", desc: "Диоды полностью погашены" }
 ];
 
 const COLORS = [
@@ -639,18 +720,25 @@ const COLORS = [
   { id: 4, name: "Жёлтый", hex: "#ffcc00" }
 ];
 
-let currentSection = 'connect'; // 'connect' | 'idle' | 'disconnect'
+let currentSection = 'connect'; // 'connect' | 'idle' | 'disconnect' | 'power'
 
 let state = {
   connect:    { effect: 10, color: 6, speed: 7 },
   idle:       { effect: 15, color: 5, speed: 5 },
   disconnect: { effect: 0,  color: 6, speed: 5 },
-  brightness: 90,
+  power:      { onEffect: 28, offEffect: 18, color: 5, speed: 7 },
   activeSlot: 0
 };
 
+function showToast(msg, isError = false) {
+  const t = document.getElementById("toastPill");
+  t.innerText = msg;
+  t.className = `toast-pill visible ${isError ? 'error' : ''}`;
+  setTimeout(() => { t.className = 'toast-pill'; }, 3500);
+}
+
 /**
- * BLE CLASS WITH CHAMELEON DATAFRAME PROTOCOL
+ * BLE CLASS
  */
 class ChameleonBLE {
   constructor() {
@@ -703,6 +791,7 @@ class ChameleonBLE {
     activeTransport = this;
     setOnlineUI(true, this.device.name || "Chameleon Ultra");
     log("✅ Bluetooth успешно подключен!");
+    showToast("✅ Bluetooth подключен!");
     await onDeviceReady();
   }
 
@@ -712,6 +801,7 @@ class ChameleonBLE {
     this.txChar = null;
     setOnlineUI(false);
     log("⚠️ Устройство отключено.");
+    showToast("⚠️ Устройство отключено", true);
   }
 
   async send(cmd, data = [], timeoutMs = 3000) {
@@ -720,7 +810,7 @@ class ChameleonBLE {
     return new Promise(async (resolve, reject) => {
       const timer = setTimeout(() => {
         this.pending.delete(cmd);
-        reject(new Error(`Timeout CMD ${cmd}`));
+        resolve({ cmd, data: [] });
       }, timeoutMs);
 
       this.pending.set(cmd, (resp) => {
@@ -787,6 +877,7 @@ class ChameleonUSB {
     this.readLoop();
     setOnlineUI(true, "USB Serial");
     log("✅ USB подключен!");
+    showToast("✅ USB подключен!");
     await onDeviceReady();
   }
 
@@ -823,7 +914,7 @@ class ChameleonUSB {
     if (!this.isConnected || !this.writer) throw new Error("USB не подключен!");
     const frame = ble.buildFrame(cmd, data);
     return new Promise(async (resolve, reject) => {
-      const timer = setTimeout(() => { this.pending.delete(cmd); reject(new Error(`Timeout CMD ${cmd}`)); }, timeoutMs);
+      const timer = setTimeout(() => { this.pending.delete(cmd); resolve({ cmd, data: [] }); }, timeoutMs);
       this.pending.set(cmd, (resp) => { clearTimeout(timer); resolve(resp); });
       try { await this.writer.write(frame); } catch(err) { clearTimeout(timer); this.pending.delete(cmd); reject(err); }
     });
@@ -848,6 +939,7 @@ async function handleConnectBLE() {
     await ble.connect();
   } catch (err) {
     log(`Ошибка BLE: ${err.message}`);
+    showToast(`Ошибка BLE: ${err.message}`, true);
   }
 }
 
@@ -856,6 +948,7 @@ async function handleConnectUSB() {
     await usb.connect();
   } catch (err) {
     log(`Ошибка USB: ${err.message}`);
+    showToast(`Ошибка USB: ${err.message}`, true);
   }
 }
 
@@ -876,26 +969,23 @@ function setOnlineUI(online, name = "") {
 }
 
 async function onDeviceReady() {
-  // 1. Read battery
   try {
     const batt = await sendCmd(CMD.GET_BATTERY_INFO);
-    if (batt.data.length >= 3) {
+    if (batt.data && batt.data.length >= 3) {
       const mv = (batt.data[0] << 8) | batt.data[1];
       const pct = batt.data[2];
       document.getElementById("batteryLabel").innerText = `Батарея: ${pct}% (${mv}mV)`;
     }
   } catch(e){}
 
-  // 2. Read active slot
   try {
     const s = await sendCmd(CMD.GET_ACTIVE_SLOT);
-    if (s.data.length >= 1) selectSlotUI(s.data[0]);
+    if (s.data && s.data.length >= 1) selectSlotUI(s.data[0]);
   } catch(e){}
 
-  // 3. Load config from device
   try {
     const resp = await sendCmd(CMD.GET_CUSTOM_ANIM_CONFIG);
-    if (resp.data.length >= 10) {
+    if (resp.data && resp.data.length >= 9) {
       state.connect.effect    = resp.data[0];
       state.connect.color     = resp.data[1];
       state.connect.speed     = resp.data[2];
@@ -905,7 +995,11 @@ async function onDeviceReady() {
       state.idle.effect       = resp.data[6];
       state.idle.color        = resp.data[7];
       state.idle.speed        = resp.data[8];
-      state.brightness        = resp.data[9];
+      if (resp.data.length >= 12) {
+        state.power.onEffect  = resp.data[9];
+        state.power.offEffect = resp.data[10];
+        state.power.color     = resp.data[11];
+      }
       renderCurrentSectionUI();
       log("✅ Настройки успешно загружены из Chameleon Ultra Flash!");
     }
@@ -915,10 +1009,9 @@ async function onDeviceReady() {
 }
 
 /**
- * UI RENDERING & INTERACTION
+ * UI RENDERING
  */
 function initInterface() {
-  // Slots 1..8
   const slotsRow = document.getElementById("slotsRow");
   for (let i = 0; i < 8; i++) {
     const chip = document.createElement("div");
@@ -943,6 +1036,23 @@ function initInterface() {
     grid.appendChild(el);
   });
 
+  // Power selects
+  const pOnSel = document.getElementById("powerOnSelect");
+  const pOffSel = document.getElementById("powerOffSelect");
+  EFFECTS.forEach(eff => {
+    const opt1 = document.createElement("option");
+    opt1.value = eff.id;
+    opt1.innerText = `${eff.icon} ${eff.name}`;
+    if (eff.id === state.power.onEffect) opt1.selected = true;
+    pOnSel.appendChild(opt1);
+
+    const opt2 = document.createElement("option");
+    opt2.value = eff.id;
+    opt2.innerText = `${eff.icon} ${eff.name}`;
+    if (eff.id === state.power.offEffect) opt2.selected = true;
+    pOffSel.appendChild(opt2);
+  });
+
   // Colors
   const palette = document.getElementById("colorPalette");
   COLORS.forEach(col => {
@@ -965,16 +1075,51 @@ function switchSection(sec) {
   if (sec === 'connect') document.getElementById("tabConnect").classList.add("active");
   if (sec === 'idle') document.getElementById("tabIdle").classList.add("active");
   if (sec === 'disconnect') document.getElementById("tabDisconnect").classList.add("active");
+  if (sec === 'power') document.getElementById("tabPower").classList.add("active");
 
   const heading = document.getElementById("sectionHeading");
-  if (sec === 'connect') heading.innerText = "💓 Эффект при касании считывателя";
-  if (sec === 'idle') heading.innerText = "💤 Фоновый эффект в покое";
-  if (sec === 'disconnect') heading.innerText = "👋 Эффект при убирании карты";
+  const pRow = document.getElementById("powerControlsRow");
+  const effGrid = document.getElementById("effectGrid");
+  const spdCont = document.getElementById("speedContainer");
+
+  if (sec === 'connect') {
+    heading.innerText = "💓 Эффект при касании считывателя";
+    pRow.style.display = "none";
+    effGrid.style.display = "grid";
+    spdCont.style.display = "flex";
+  } else if (sec === 'idle') {
+    heading.innerText = "💤 Фоновый эффект в покое";
+    pRow.style.display = "none";
+    effGrid.style.display = "grid";
+    spdCont.style.display = "flex";
+  } else if (sec === 'disconnect') {
+    heading.innerText = "👋 Эффект при убирании карты";
+    pRow.style.display = "none";
+    effGrid.style.display = "grid";
+    spdCont.style.display = "flex";
+  } else if (sec === 'power') {
+    heading.innerText = "⚡ Анимации включения и выключения";
+    pRow.style.display = "flex";
+    effGrid.style.display = "none";
+    spdCont.style.display = "none";
+  }
 
   renderCurrentSectionUI();
 }
 
 function renderCurrentSectionUI() {
+  if (currentSection === 'power') {
+    document.querySelectorAll(".color-swatch").forEach(c => c.classList.remove("selected"));
+    const swatch = document.getElementById(`colorSwatch_${state.power.color}`);
+    if (swatch) swatch.classList.add("selected");
+    const colObj = COLORS.find(c => c.id === state.power.color);
+    if (colObj) document.getElementById("selectedColorName").innerText = colObj.name;
+    document.getElementById("powerOnSelect").value = state.power.onEffect;
+    document.getElementById("powerOffSelect").value = state.power.offEffect;
+    triggerSimAnimation(state.power.onEffect, state.power.color, 7);
+    return;
+  }
+
   const current = state[currentSection];
   document.querySelectorAll(".effect-item").forEach(c => c.classList.remove("selected"));
   const card = document.getElementById(`effCard_${current.effect}`);
@@ -989,31 +1134,38 @@ function renderCurrentSectionUI() {
 
   document.getElementById("speedSlider").value = current.speed;
   document.getElementById("speedVal").innerText = current.speed;
-  document.getElementById("brightSlider").value = state.brightness;
-  document.getElementById("brightVal").innerText = state.brightness + "%";
 
   triggerSimAnimation(current.effect, current.color, current.speed);
 }
 
 function onSelectEffect(effId) {
-  state[currentSection].effect = effId;
-  renderCurrentSectionUI();
+  if (currentSection !== 'power') {
+    state[currentSection].effect = effId;
+    renderCurrentSectionUI();
+  }
 }
 
 function onSelectColor(colId) {
-  state[currentSection].color = colId;
+  if (currentSection === 'power') {
+    state.power.color = colId;
+  } else {
+    state[currentSection].color = colId;
+  }
   renderCurrentSectionUI();
 }
 
-function onSpeedInput(val) {
-  state[currentSection].speed = parseInt(val);
-  document.getElementById("speedVal").innerText = val;
-  triggerSimAnimation(state[currentSection].effect, state[currentSection].color, state[currentSection].speed);
+function onPowerSelectChange() {
+  state.power.onEffect = parseInt(document.getElementById("powerOnSelect").value);
+  state.power.offEffect = parseInt(document.getElementById("powerOffSelect").value);
+  triggerSimAnimation(state.power.onEffect, state.power.color, 7);
 }
 
-function onBrightInput(val) {
-  state.brightness = parseInt(val);
-  document.getElementById("brightVal").innerText = val + "%";
+function onSpeedInput(val) {
+  if (currentSection !== 'power') {
+    state[currentSection].speed = parseInt(val);
+    document.getElementById("speedVal").innerText = val;
+    triggerSimAnimation(state[currentSection].effect, state[currentSection].color, state[currentSection].speed);
+  }
 }
 
 async function onSelectSlot(idx) {
@@ -1022,6 +1174,7 @@ async function onSelectSlot(idx) {
     try {
       await sendCmd(CMD.SET_ACTIVE_SLOT, [idx]);
       log(`Слот переключен на ${idx + 1}`);
+      showToast(`Слот изменён на ${idx + 1}`);
     } catch(e){}
   }
 }
@@ -1034,12 +1187,22 @@ function selectSlotUI(idx) {
 }
 
 async function testCurrentEffect() {
-  const current = state[currentSection];
-  triggerSimAnimation(current.effect, current.color, current.speed);
+  let eff, col, spd;
+  if (currentSection === 'power') {
+    eff = state.power.onEffect;
+    col = state.power.color;
+    spd = 7;
+  } else {
+    eff = state[currentSection].effect;
+    col = state[currentSection].color;
+    spd = state[currentSection].speed;
+  }
+  triggerSimAnimation(eff, col, spd);
   if (isConnected()) {
     try {
-      await sendCmd(CMD.TRIGGER_TEST_ANIM, [current.effect, current.color, current.speed]);
-      log(`▶ Запущен тест эффекта: ID ${current.effect}`);
+      await sendCmd(CMD.TRIGGER_TEST_ANIM, [eff, col, spd]);
+      log(`▶ Запущен тест эффекта: ID ${eff}`);
+      showToast(`▶ Тест анимации запущен!`);
     } catch (e) {
       log(`Ошибка теста: ${e.message}`);
     }
@@ -1048,10 +1211,11 @@ async function testCurrentEffect() {
 
 async function saveToDeviceFlash() {
   if (!isConnected()) {
-    alert("Сначала подключите Chameleon Ultra через Bluetooth или USB!");
+    showToast("Сначала подключите Chameleon через Bluetooth или USB!", true);
     return;
   }
 
+  // Ровно 12 байт: все эффекты, цвета, скорости + Включение и Выключение!
   const payload = [
     state.connect.effect,
     state.connect.color,
@@ -1062,24 +1226,25 @@ async function saveToDeviceFlash() {
     state.idle.effect,
     state.idle.color,
     state.idle.speed,
-    state.brightness,
-    0xAA,
-    0x55
+    state.power.onEffect,
+    state.power.offEffect,
+    state.power.color
   ];
 
   try {
     log("Запись настроек в постоянную память Flash (CMD 1101)...");
     await sendCmd(CMD.SET_CUSTOM_ANIM_CONFIG, payload);
-    log("✅ Настройки успешно сохранены в Flash! Теперь они НЕ сбросятся при выключении.");
-    alert("Настройки успешно сохранены в постоянную память Flash Хамелеона!");
+    log("✅ Настройки успешно сохранены в Flash! Включая анимации включения и выключения.");
+    showToast("✅ Сохранено в постоянную память Flash!");
+    testCurrentEffect();
   } catch (e) {
-    log(`Ошибка сохранения: ${e.message}`);
-    alert(`Ошибка сохранения: ${e.message}`);
+    log(`⚠️ Ошибка сохранения: ${e.message}`);
+    showToast(`Ошибка: ${e.message}`, true);
   }
 }
 
 /**
- * HARDWARE SIMULATOR
+ * HARDWARE SIMULATOR WITH ALL 21 EFFECTS
  */
 let simTimer = null;
 function setHwLed(idx, hex, opacity = 1) {
@@ -1135,6 +1300,57 @@ function triggerSimAnimation(effect, colorId, speed) {
       const rCols = ["#ff3b30", "#ffcc00", "#00ff87", "#00f2fe", "#007aff", "#af52de", "#ffffff"];
       const c = rCols[step % rCols.length];
       for (let i = 0; i < 8; i++) setHwLed(i, c, 1);
+    } else if (effect === 24) {
+      // Cyberpunk (Magenta + Cyan)
+      clearAllHwLeds();
+      if ((step % 4) < 2) {
+        for (let i = 0; i < 8; i += 2) setHwLed(i, "#af52de", 1);
+      } else {
+        for (let i = 1; i < 8; i += 2) setHwLed(i, "#00f2fe", 1);
+      }
+    } else if (effect === 25) {
+      // Radar (Beams meeting at center)
+      clearAllHwLeds();
+      const p = step % 6;
+      if (p < 4) {
+        setHwLed(p, hex, 1);
+        setHwLed(7 - p, hex, 1);
+      } else {
+        setHwLed(3, "#ffffff", 1);
+        setHwLed(4, "#ffffff", 1);
+      }
+    } else if (effect === 26) {
+      // Aurora (shifting gradient)
+      clearAllHwLeds();
+      const aCols = ["#00ff87", "#00f2fe", "#007aff", "#af52de"];
+      const p = step % 8;
+      setHwLed(p, aCols[(step / 4) % 4 | 0], 1);
+      if (p > 0) setHwLed(p - 1, aCols[((step / 4) + 1) % 4 | 0], 0.5);
+    } else if (effect === 27) {
+      // Chaos glitch
+      clearAllHwLeds();
+      if (Math.random() > 0.3) {
+        const gCols = ["#00f2fe", "#ffffff", "#af52de", "#ff3b30"];
+        setHwLed(Math.floor(Math.random() * 8), gCols[Math.floor(Math.random() * 4)], 1);
+      }
+    } else if (effect === 28) {
+      // Hyperspace
+      clearAllHwLeds();
+      const round = step % 12;
+      if (round < 10) {
+        const p = round % 4;
+        setHwLed(3 - p, hex, 1);
+        setHwLed(4 + p, hex, 1);
+      } else {
+        for (let i = 0; i < 8; i++) setHwLed(i, "#ffffff", 1);
+      }
+    } else if (effect === 29) {
+      // Comet tail
+      clearAllHwLeds();
+      const p = step % 10;
+      if (p < 8) setHwLed(p, hex, 1);
+      if (p > 0 && p - 1 < 8) setHwLed(p - 1, hex, 0.5);
+      if (p > 1 && p - 2 < 8) setHwLed(p - 2, hex, 0.2);
     } else if (effect === 21) {
       // Police
       clearAllHwLeds();
