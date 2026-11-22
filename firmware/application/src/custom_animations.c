@@ -11,12 +11,10 @@
 
 #define FDS_CUSTOM_ANIM_FILE_ID    0x1005
 #define FDS_CUSTOM_ANIM_RECORD_KEY 0x0001
+#define CONFIG_MAGIC1              0xAA
+#define CONFIG_MAGIC2              0x55
 
 extern bool g_is_tag_emulating;
-
-// Предварительные объявления для компилятора
-bool custom_anim_save_to_flash(void);
-void custom_anim_load_from_flash(void);
 
 static custom_anim_config_t m_config = {
     .on_connect_effect    = ANIM_EFFECT_PULSE_WHITE,
@@ -29,9 +27,10 @@ static custom_anim_config_t m_config = {
     .idle_color           = RGB_CYAN,
     .idle_speed           = 5,
     .brightness           = 90,
+    .magic1               = CONFIG_MAGIC1,
+    .magic2               = CONFIG_MAGIC2
 };
 
-// Родной тип таймера в Chameleon Ultra: autotimer*
 static autotimer *m_idle_timer = NULL;
 static bool m_was_emulating = false;
 static uint16_t m_idle_step_counter = 0;
@@ -40,35 +39,58 @@ static int8_t m_chase_pos = 0;
 
 static void all_leds_off(void) {
     uint32_t *led_pins = hw_get_led_array();
-    for (uint8_t i = 0; i < RGB_LIST_NUM; i++) {
-        nrf_gpio_pin_clear(led_pins[i]);
-    }
+    for (uint8_t i = 0; i < RGB_LIST_NUM; i++) nrf_gpio_pin_clear(led_pins[i]);
 }
 
 static void all_leds_on(void) {
     uint32_t *led_pins = hw_get_led_array();
-    for (uint8_t i = 0; i < RGB_LIST_NUM; i++) {
-        nrf_gpio_pin_set(led_pins[i]);
-    }
+    for (uint8_t i = 0; i < RGB_LIST_NUM; i++) nrf_gpio_pin_set(led_pins[i]);
 }
 
 bool custom_anim_save_to_flash(void) {
-    return fds_write_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, sizeof(m_config), (uint8_t *)&m_config);
+    uint8_t buf[12];
+    buf[0]  = m_config.on_connect_effect;
+    buf[1]  = m_config.on_connect_color;
+    buf[2]  = m_config.on_connect_speed;
+    buf[3]  = m_config.on_disconnect_effect;
+    buf[4]  = m_config.on_disconnect_color;
+    buf[5]  = m_config.on_disconnect_speed;
+    buf[6]  = m_config.idle_effect;
+    buf[7]  = m_config.idle_color;
+    buf[8]  = m_config.idle_speed;
+    buf[9]  = m_config.brightness;
+    buf[10] = CONFIG_MAGIC1;
+    buf[11] = CONFIG_MAGIC2;
+    return fds_write_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, 12, buf);
 }
 
 void custom_anim_load_from_flash(void) {
-    uint16_t len = sizeof(m_config);
-    if (fds_read_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, &len, (uint8_t *)&m_config)) {
-        NRF_LOG_INFO("Loaded custom anim from Flash.");
-    } else {
-        custom_anim_save_to_flash();
+    uint8_t buf[16] = {0};
+    uint16_t len = sizeof(buf);
+    if (fds_read_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, &len, buf)) {
+        if (len >= 12 && buf[10] == CONFIG_MAGIC1 && buf[11] == CONFIG_MAGIC2) {
+            m_config.on_connect_effect    = buf[0];
+            m_config.on_connect_color     = buf[1];
+            m_config.on_connect_speed     = buf[2];
+            m_config.on_disconnect_effect = buf[3];
+            m_config.on_disconnect_color  = buf[4];
+            m_config.on_disconnect_speed  = buf[5];
+            m_config.idle_effect          = buf[6];
+            m_config.idle_color           = buf[7];
+            m_config.idle_speed           = buf[8];
+            m_config.brightness           = buf[9];
+            return;
+        }
     }
+    custom_anim_save_to_flash();
 }
 
 void custom_anim_init(void) {
     m_idle_timer = bsp_obtain_timer(0);
     m_was_emulating = false;
     m_idle_step_counter = 0;
+    m_chase_dir = 1;
+    m_chase_pos = 0;
     custom_anim_load_from_flash();
 }
 
@@ -78,7 +100,16 @@ void custom_anim_get_config(custom_anim_config_t *cfg) {
 
 void custom_anim_set_config(const custom_anim_config_t *cfg) {
     if (cfg) {
-        memcpy(&m_config, cfg, sizeof(custom_anim_config_t));
+        m_config.on_connect_effect    = cfg->on_connect_effect;
+        m_config.on_connect_color     = cfg->on_connect_color;
+        m_config.on_connect_speed     = cfg->on_connect_speed;
+        m_config.on_disconnect_effect = cfg->on_disconnect_effect;
+        m_config.on_disconnect_color  = cfg->on_disconnect_color;
+        m_config.on_disconnect_speed  = cfg->on_disconnect_speed;
+        m_config.idle_effect          = cfg->idle_effect;
+        m_config.idle_color           = cfg->idle_color;
+        m_config.idle_speed           = cfg->idle_speed;
+        m_config.brightness           = cfg->brightness;
         all_leds_off();
         m_idle_step_counter = 0;
         custom_anim_save_to_flash();
@@ -94,7 +125,6 @@ static void run_pulse_animation(uint8_t color, uint8_t speed, uint8_t max_bright
     uint32_t *led_pins = hw_get_led_array();
     all_leds_off();
     set_slot_light_color((chameleon_rgb_type_t)color);
-
     uint8_t peak = (max_brightness > 99) ? 99 : (max_brightness < 10 ? 10 : max_brightness);
     uint16_t cycle_us = 1000;
     uint8_t step_inc = (speed >= 8) ? 4 : ((speed >= 5) ? 3 : 2);
@@ -111,9 +141,7 @@ static void run_pulse_animation(uint8_t color, uint8_t speed, uint8_t max_bright
             }
         }
     }
-
     bsp_delay_ms(35);
-
     for (int16_t duty = peak; duty >= 0; duty -= step_inc) {
         for (uint8_t r = 0; r < 3; r++) {
             if (duty > 0) {
@@ -152,16 +180,12 @@ static void run_wave_animation(uint8_t color, uint8_t speed) {
 }
 
 static void run_rainbow_animation(uint8_t speed) {
-    chameleon_rgb_type_t rainbow_colors[] = {
-        RGB_RED, RGB_YELLOW, RGB_GREEN, RGB_CYAN, RGB_BLUE, RGB_MAGENTA, RGB_WHITE
-    };
-    uint8_t count = sizeof(rainbow_colors) / sizeof(rainbow_colors[0]);
+    chameleon_rgb_type_t colors[] = { RGB_RED, RGB_YELLOW, RGB_GREEN, RGB_CYAN, RGB_BLUE, RGB_MAGENTA, RGB_WHITE };
     uint16_t delay = 180 - (speed * 14);
     if (delay < 30) delay = 30;
-
     all_leds_on();
-    for (uint8_t c = 0; c < count; c++) {
-        set_slot_light_color(rainbow_colors[c]);
+    for (uint8_t c = 0; c < 7; c++) {
+        set_slot_light_color(colors[c]);
         bsp_delay_ms(delay);
     }
     all_leds_off();
@@ -172,7 +196,6 @@ static void run_burst_animation(uint8_t color, uint8_t speed) {
     set_slot_light_color((chameleon_rgb_type_t)color);
     uint16_t delay = 70 - (speed * 5);
     if (delay < 15) delay = 15;
-
     for (uint8_t step = 0; step < 4; step++) {
         all_leds_off();
         nrf_gpio_pin_set(led_pins[3 - step]);
@@ -192,7 +215,6 @@ static void run_strobe_animation(uint8_t color, uint8_t speed) {
     set_slot_light_color((chameleon_rgb_type_t)color);
     uint16_t off_ms = 40 - (speed * 2);
     if (off_ms < 15) off_ms = 15;
-
     for (uint8_t i = 0; i < 4; i++) {
         all_leds_on();
         bsp_delay_ms(25);
@@ -217,7 +239,6 @@ static void run_police_animation(uint8_t speed) {
     uint32_t *led_pins = hw_get_led_array();
     uint16_t delay = 45 - (speed * 2);
     if (delay < 15) delay = 15;
-
     for (uint8_t cycle = 0; cycle < 3; cycle++) {
         set_slot_light_color(RGB_RED);
         all_leds_off();
@@ -248,7 +269,6 @@ static void run_fire_animation(uint8_t speed) {
     uint32_t *led_pins = hw_get_led_array();
     chameleon_rgb_type_t fire_cols[] = { RGB_RED, RGB_YELLOW, RGB_WHITE };
     uint8_t frames = speed * 4 + 10;
-
     for (uint8_t f = 0; f < frames; f++) {
         all_leds_off();
         set_slot_light_color(fire_cols[rand() % 3]);
@@ -264,7 +284,6 @@ static void run_matrix_animation(uint8_t speed) {
     set_slot_light_color(RGB_GREEN);
     uint16_t delay = 50 - (speed * 3);
     if (delay < 10) delay = 10;
-
     for (uint8_t pass = 0; pass < 2; pass++) {
         for (uint8_t i = 0; i < RGB_LIST_NUM; i++) {
             all_leds_off();
@@ -324,17 +343,11 @@ static void execute_effect(uint8_t effect, uint8_t color, uint8_t speed, uint8_t
 }
 
 void custom_anim_play_connect(void) {
-    execute_effect(m_config.on_connect_effect,
-                   m_config.on_connect_color,
-                   m_config.on_connect_speed,
-                   m_config.brightness);
+    execute_effect(m_config.on_connect_effect, m_config.on_connect_color, m_config.on_connect_speed, m_config.brightness);
 }
 
 void custom_anim_play_disconnect(void) {
-    execute_effect(m_config.on_disconnect_effect,
-                   m_config.on_disconnect_color,
-                   m_config.on_disconnect_speed,
-                   m_config.brightness);
+    execute_effect(m_config.on_disconnect_effect, m_config.on_disconnect_color, m_config.on_disconnect_speed, m_config.brightness);
 }
 
 void custom_anim_play_test(uint8_t effect, uint8_t color, uint8_t speed) {
@@ -355,11 +368,13 @@ void custom_anim_idle_step(void) {
         return;
     }
 
-    // Если сейчас читается карта, фоновый огонёк не горит
     if (g_is_tag_emulating) return;
 
     // 2. ФОНОВЫЙ РЕЖИМ
-    if (m_config.idle_effect == ANIM_EFFECT_NONE) return;
+    if (m_config.idle_effect == ANIM_EFFECT_NONE) {
+        all_leds_off();
+        return;
+    }
 
     if (m_idle_timer == NULL) {
         m_idle_timer = bsp_obtain_timer(0);
@@ -371,7 +386,6 @@ void custom_anim_idle_step(void) {
 
     if (!NO_TIMEOUT_1MS(m_idle_timer, delay_ms)) {
         bsp_set_timer(m_idle_timer, 0);
-
         uint32_t *led_pins = hw_get_led_array();
         set_slot_light_color((chameleon_rgb_type_t)m_config.idle_color);
 
@@ -380,34 +394,33 @@ void custom_anim_idle_step(void) {
                 all_leds_off();
                 nrf_gpio_pin_set(led_pins[m_chase_pos]);
                 m_chase_pos += m_chase_dir;
-                if (m_chase_pos >= (int8_t)RGB_LIST_NUM - 1) {
-                    m_chase_pos = RGB_LIST_NUM - 1;
-                    m_chase_dir = -1;
-                } else if (m_chase_pos <= 0) {
-                    m_chase_pos = 0;
-                    m_chase_dir = 1;
-                }
+                if (m_chase_pos >= (int8_t)RGB_LIST_NUM - 1) { m_chase_pos = RGB_LIST_NUM - 1; m_chase_dir = -1; }
+                else if (m_chase_pos <= 0) { m_chase_pos = 0; m_chase_dir = 1; }
                 break;
             }
-
+            case ANIM_EFFECT_SWEEP_WAVE: {
+                all_leds_off();
+                nrf_gpio_pin_set(led_pins[m_chase_pos]);
+                if (m_chase_pos > 0) nrf_gpio_pin_set(led_pins[m_chase_pos - 1]);
+                m_chase_pos += m_chase_dir;
+                if (m_chase_pos >= (int8_t)RGB_LIST_NUM - 1) { m_chase_pos = RGB_LIST_NUM - 1; m_chase_dir = -1; }
+                else if (m_chase_pos <= 0) { m_chase_pos = 0; m_chase_dir = 1; }
+                break;
+            }
             case ANIM_EFFECT_BREATHE:
             case ANIM_EFFECT_PULSE_COLOR:
             case ANIM_EFFECT_PULSE_WHITE: {
                 m_idle_step_counter++;
-                if ((m_idle_step_counter % 8) < 4) all_leds_on();
+                if ((m_idle_step_counter % 12) < 6) all_leds_on();
                 else all_leds_off();
                 break;
             }
-
             case ANIM_EFFECT_RAINBOW: {
-                chameleon_rgb_type_t colors[] = {
-                    RGB_RED, RGB_YELLOW, RGB_GREEN, RGB_CYAN, RGB_BLUE, RGB_MAGENTA, RGB_WHITE
-                };
+                chameleon_rgb_type_t cols[] = { RGB_RED, RGB_YELLOW, RGB_GREEN, RGB_CYAN, RGB_BLUE, RGB_MAGENTA, RGB_WHITE };
                 all_leds_on();
-                set_slot_light_color(colors[(m_idle_step_counter++) % 7]);
+                set_slot_light_color(cols[(m_idle_step_counter++) % 7]);
                 break;
             }
-
             case ANIM_EFFECT_POLICE: {
                 m_idle_step_counter++;
                 all_leds_off();
@@ -420,30 +433,49 @@ void custom_anim_idle_step(void) {
                 }
                 break;
             }
-
-            case ANIM_EFFECT_SPARKLE:
-            case ANIM_EFFECT_FIRE: {
+            case ANIM_EFFECT_FIRE:
+            case ANIM_EFFECT_SPARKLE: {
                 all_leds_off();
+                if (m_config.idle_effect == ANIM_EFFECT_FIRE) {
+                    chameleon_rgb_type_t fc[] = { RGB_RED, RGB_YELLOW, RGB_WHITE };
+                    set_slot_light_color(fc[rand() % 3]);
+                }
                 nrf_gpio_pin_set(led_pins[rand() % RGB_LIST_NUM]);
                 break;
             }
-
-            case ANIM_EFFECT_SWEEP_WAVE:
             case ANIM_EFFECT_MATRIX: {
                 all_leds_off();
+                set_slot_light_color(RGB_GREEN);
                 uint8_t p = (m_idle_step_counter++) % RGB_LIST_NUM;
                 nrf_gpio_pin_set(led_pins[p]);
                 if (p > 0) nrf_gpio_pin_set(led_pins[p - 1]);
                 break;
             }
-
+            case ANIM_EFFECT_HEARTBEAT: {
+                m_idle_step_counter++;
+                uint8_t hb = m_idle_step_counter % 10;
+                if (hb == 0 || hb == 2) all_leds_on();
+                else all_leds_off();
+                break;
+            }
+            case ANIM_EFFECT_STROBE: {
+                m_idle_step_counter++;
+                if ((m_idle_step_counter % 2) == 0) all_leds_on();
+                else all_leds_off();
+                break;
+            }
+            case ANIM_EFFECT_SYMMETRIC_BURST: {
+                all_leds_off();
+                uint8_t p = (m_idle_step_counter++) % 4;
+                nrf_gpio_pin_set(led_pins[3 - p]);
+                nrf_gpio_pin_set(led_pins[4 + p]);
+                break;
+            }
             case ANIM_EFFECT_SOLID: {
                 all_leds_on();
                 break;
             }
-
-            default:
-                break;
+            default: break;
         }
     }
 }
