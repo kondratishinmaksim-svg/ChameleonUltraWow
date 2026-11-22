@@ -37,6 +37,7 @@ NRF_LOG_MODULE_REGISTER();
 #include "hex_utils.h"
 #include "rfid_main.h"
 #include "syssleep.h"
+#include "custom_animations.h"
 #include "tag_emulation.h"
 #include "usb_main.h"
 #include "rgb_marquee.h"
