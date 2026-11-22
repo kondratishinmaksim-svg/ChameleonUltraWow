@@ -332,7 +332,9 @@ static void system_off_enter(void) {
                 color = 2;
             }
         }
-        if (animation_config == SettingsAnimationModeFull) {
+        if (custom_anim_play_poweroff()) {
+            // Custom Power Off animation played
+        } else if (animation_config == SettingsAnimationModeFull) {
             if (m_system_off_processing) rgb_marquee_sweep_from_to(color, slot, dir ? 7 : 0);
             if (m_system_off_processing) rgb_marquee_sweep_fade(color, dir, 7, 99, 75);
             if (m_system_off_processing) rgb_marquee_sweep_fade(color, !dir, 7, 75, 50);
@@ -481,17 +483,19 @@ static void check_wakeup_src(void) {
         advertising_start(false); // Turn on Bluetooth radio
 
         // Button wake-up boot animation
-        uint8_t animation_config = settings_get_animation_config();
-        if (animation_config == SettingsAnimationModeFull) {
-            rgb_marquee_sweep_to(color, !dir, 11);
-            rgb_marquee_sweep_to(color, dir, 11);
-            rgb_marquee_sweep_to(color, !dir, dir ? slot : 7 - slot);
-        } else if (animation_config == SettingsAnimationModeMinimal) {
-            rgb_marquee_sweep_to(color, !dir, dir ? slot : 7 - slot);
-        } else if (animation_config == SettingsAnimationModeSymmetric) {
-            rgb_marquee_symmetric_out(color, slot);
-        } else {
-            set_slot_light_color(color);
+        if (!custom_anim_play_poweron()) {
+            uint8_t animation_config = settings_get_animation_config();
+            if (animation_config == SettingsAnimationModeFull) {
+                rgb_marquee_sweep_to(color, !dir, 11);
+                rgb_marquee_sweep_to(color, dir, 11);
+                rgb_marquee_sweep_to(color, !dir, dir ? slot : 7 - slot);
+            } else if (animation_config == SettingsAnimationModeMinimal) {
+                rgb_marquee_sweep_to(color, !dir, dir ? slot : 7 - slot);
+            } else if (animation_config == SettingsAnimationModeSymmetric) {
+                rgb_marquee_symmetric_out(color, slot);
+            } else {
+                set_slot_light_color(color);
+            }
         }
 
         // The indicator of the current card slot lights up at the end of the animation
@@ -554,19 +558,21 @@ static void check_wakeup_src(void) {
         tag_emulation_factory_init();
 
         // RGB
-        uint8_t animation_config = settings_get_animation_config();
-        if (animation_config == SettingsAnimationModeFull) {
-            rgb_marquee_sweep_to(0, !dir, 11);
-            rgb_marquee_sweep_to(1, dir, 11);
-            rgb_marquee_sweep_to(2, !dir, 11);
-        } else if (animation_config == SettingsAnimationModeMinimal) {
-            rgb_marquee_sweep_from_to(0, 0, 2);
-            rgb_marquee_sweep_from_to(1, 2, 5);
-            rgb_marquee_sweep_from_to(2, 5, 7);
-        } else if (animation_config == SettingsAnimationModeSymmetric) {
-            rgb_marquee_symmetric_out(0, ~0);
-            rgb_marquee_symmetric_in(1, ~0);
-            rgb_marquee_symmetric_out(2, ~0);
+        if (!custom_anim_play_poweron()) {
+            uint8_t animation_config = settings_get_animation_config();
+            if (animation_config == SettingsAnimationModeFull) {
+                rgb_marquee_sweep_to(0, !dir, 11);
+                rgb_marquee_sweep_to(1, dir, 11);
+                rgb_marquee_sweep_to(2, !dir, 11);
+            } else if (animation_config == SettingsAnimationModeMinimal) {
+                rgb_marquee_sweep_from_to(0, 0, 2);
+                rgb_marquee_sweep_from_to(1, 2, 5);
+                rgb_marquee_sweep_from_to(2, 5, 7);
+            } else if (animation_config == SettingsAnimationModeSymmetric) {
+                rgb_marquee_symmetric_out(0, ~0);
+                rgb_marquee_symmetric_in(1, ~0);
+                rgb_marquee_symmetric_out(2, ~0);
+            }
         }
 
         // Show RGB for slot.
