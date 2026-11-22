@@ -1,37 +1,33 @@
 #include "custom_animations.h"
 #include "hw_connect.h"
-#include "nrf_gpio.h"
+#include "rgb_marquee.h"
 #include "bsp_delay.h"
 #include "bsp_time.h"
-#include "rgb_marquee.h"
-#include "fds_util.h"
-#include <stdlib.h>
-#include <string.h>
-
-#define NRF_LOG_MODULE_NAME custom_anim
+#include "nrf_gpio.h"
 #include "nrf_log.h"
-#include "nrf_log_ctrl.h"
-NRF_LOG_MODULE_REGISTER();
-
-extern bool g_is_tag_emulating;
+#include "fds_util.h"
+#include <string.h>
+#include <stdlib.h>
 
 #define FDS_CUSTOM_ANIM_FILE_ID    0x1005
 #define FDS_CUSTOM_ANIM_RECORD_KEY 0x0001
+
+extern bool g_is_tag_emulating;
 
 static custom_anim_config_t m_config = {
     .on_connect_effect    = ANIM_EFFECT_PULSE_WHITE,
     .on_connect_color     = RGB_WHITE,
     .on_connect_speed     = 7,
-    .on_disconnect_effect = ANIM_EFFECT_SWEEP_WAVE,
-    .on_disconnect_color  = RGB_CYAN,
-    .on_disconnect_speed  = 6,
-    .idle_effect          = ANIM_EFFECT_BREATHE,
-    .idle_color           = RGB_BLUE,
-    .idle_speed           = 4,
-    .brightness           = 90
+    .on_disconnect_effect = ANIM_EFFECT_NONE,
+    .on_disconnect_color  = RGB_WHITE,
+    .on_disconnect_speed  = 5,
+    .idle_effect          = ANIM_EFFECT_SLOT_CHASE,
+    .idle_color           = RGB_CYAN,
+    .idle_speed           = 5,
+    .brightness           = 90,
 };
 
-static autotimer *m_idle_timer = NULL;
+static bsp_timer_t m_idle_timer = NULL;
 static bool m_was_emulating = false;
 static uint16_t m_idle_step_counter = 0;
 static int8_t m_chase_dir = 1;
@@ -47,6 +43,12 @@ static void all_leds_on(void) {
     for (uint8_t i = 0; i < RGB_LIST_NUM; i++) nrf_gpio_pin_set(led_pins[i]);
 }
 
+// 1. Сначала определяем функцию сохранения в Flash
+bool custom_anim_save_to_flash(void) {
+    return fds_write_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, sizeof(m_config), (uint8_t *)&m_config);
+}
+
+// 2. Затем определяем загрузку из Flash
 void custom_anim_load_from_flash(void) {
     uint16_t len = sizeof(m_config);
     if (fds_read_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, &len, (uint8_t *)&m_config)) {
@@ -54,10 +56,6 @@ void custom_anim_load_from_flash(void) {
     } else {
         custom_anim_save_to_flash();
     }
-}
-
-bool custom_anim_save_to_flash(void) {
-    return fds_write_sync(FDS_CUSTOM_ANIM_FILE_ID, FDS_CUSTOM_ANIM_RECORD_KEY, sizeof(m_config), (uint8_t *)&m_config);
 }
 
 void custom_anim_init(void) {
@@ -76,7 +74,7 @@ void custom_anim_set_config(const custom_anim_config_t *cfg) {
         memcpy(&m_config, cfg, sizeof(custom_anim_config_t));
         all_leds_off();
         m_idle_step_counter = 0;
-        custom_anim_save_to_flash(); // Сохраняем в память Flash
+        custom_anim_save_to_flash(); // Сохраняем в память Flash при каждом изменении
     }
 }
 
@@ -341,7 +339,7 @@ void custom_anim_idle_step(void) {
     if (g_is_tag_emulating && !m_was_emulating) {
         m_was_emulating = true;
         all_leds_off();
-        custom_anim_play_connect(); // БЕЛАЯ ПУЛЬСАЦИЯ
+        custom_anim_play_connect(); // Запуск белой пульсации
         return;
     } else if (!g_is_tag_emulating && m_was_emulating) {
         m_was_emulating = false;
@@ -350,7 +348,7 @@ void custom_anim_idle_step(void) {
         return;
     }
 
-    // Если сейчас читается карта — фоновый огонёк НЕ мешает
+    // Во время эмуляции карты фоновый огонёк не горит
     if (g_is_tag_emulating) return;
 
     // 2. ФОНОВЫЙ РЕЖИМ ОЖИДАНИЯ
