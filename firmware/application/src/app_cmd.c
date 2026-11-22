@@ -32,6 +32,13 @@ extern void nfc_tag_14a_clear_tx_sniff_cb(void);
 extern void nfc_tag_14a_set_sniff_passive(bool passive);
 #include "nfc_14a_4.h"
 
+#include "custom_cmd.h"
+#include "custom_animations.h"
+
+data_frame_tx_t *cmd_processor_get_custom_anim_config(uint16_t cmd, uint16_t status, uint16_t length, uint8_t *data);
+data_frame_tx_t *cmd_processor_set_custom_anim_config(uint16_t cmd, uint16_t status, uint16_t length, uint8_t *data);
+data_frame_tx_t *cmd_processor_trigger_test_anim(uint16_t cmd, uint16_t status, uint16_t length, uint8_t *data);
+
 #define NRF_LOG_MODULE_NAME app_cmd
 #include "nrf_log.h"
 #include "nrf_log_ctrl.h"
