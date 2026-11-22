@@ -1,219 +1,1458 @@
 <!DOCTYPE html>
 <html lang="ru">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Chameleon Ultra - LED Control</title>
-  <style>
-    :root {
-      --bg: #0f172a;
-      --card-bg: #1e293b;
-      --accent: #38bdf8;
-      --accent-hover: #0284c7;
-      --text: #f8fafc;
-      --text-muted: #94a3b8;
-      --border: #334155;
-    }
-    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
-    body { background-color: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
-    .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 16px; }
-    .header { text-align: center; margin-bottom: 8px; }
-    .header h1 { font-size: 1.4rem; color: var(--accent); margin-bottom: 4px; }
-    .header p { font-size: 0.85rem; color: var(--text-muted); }
-    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
-    .card h2 { font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
-    .form-group { display: flex; flex-direction: column; gap: 6px; }
-    label { font-size: 0.85rem; color: var(--text-muted); }
-    select, input[type="range"] {
-      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
-      background: #0f172a; color: var(--text); font-size: 0.95rem; outline: none;
-    }
-    .btn {
-      background: var(--accent); color: #0f172a; border: none; border-radius: 8px;
-      padding: 12px 16px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
-      display: flex; align-items: center; justify-content: center; gap: 8px;
-      transition: background 0.2s;
-    }
-    .btn:active { transform: scale(0.98); }
-    .btn-secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
-    .btn-group { display: flex; gap: 10px; }
-    .btn-group .btn { flex: 1; }
-    .status-bar { font-size: 0.85rem; padding: 10px 14px; border-radius: 8px; background: #1e293b; border: 1px solid var(--border); text-align: center; }
-    .status-bar.connected { border-color: #22c55e; color: #4ade80; }
-    .status-bar.disconnected { border-color: #ef4444; color: #f87171; }
-  </style>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Chameleon Ultra — Управление LED & Анимациями</title>
+    <style>
+        :root {
+            --bg-primary: #0a0e17;
+            --bg-secondary: #131b2e;
+            --bg-card: #182238;
+            --accent: #00f2fe;
+            --accent-green: #00ff87;
+            --accent-purple: #7928ca;
+            --accent-white: #ffffff;
+            --text-main: #f0f4fc;
+            --text-dim: #8b9bb4;
+            --border: #233554;
+            --danger: #ff0055;
+            --card-radius: 14px;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        body {
+            background: var(--bg-primary);
+            color: var(--text-main);
+            min-height: 100vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            padding: 24px 16px 40px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 860px;
+            display: flex;
+            flex-direction: column;
+            gap: 20px;
+        }
+
+        /* HEADER */
+        header {
+            background: linear-gradient(135deg, rgba(19, 27, 46, 0.8), rgba(24, 34, 56, 0.8));
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            gap: 16px;
+            box-shadow: 0 10px 30px rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(10px);
+        }
+
+        .header-top {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 14px;
+        }
+
+        .logo-group {
+            display: flex;
+            align-items: center;
+            gap: 14px;
+        }
+
+        .logo-badge {
+            width: 44px;
+            height: 44px;
+            border-radius: 12px;
+            background: linear-gradient(135deg, var(--accent), var(--accent-purple));
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+            box-shadow: 0 0 20px rgba(0, 242, 254, 0.4);
+        }
+
+        h1 {
+            font-size: 22px;
+            font-weight: 700;
+            background: linear-gradient(90deg, #fff, var(--accent));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+        }
+
+        .subtitle {
+            font-size: 13px;
+            color: var(--text-dim);
+        }
+
+        .btn-connect {
+            background: linear-gradient(135deg, #00f2fe, #4facfe);
+            color: #04101e;
+            border: none;
+            padding: 12px 24px;
+            font-size: 15px;
+            font-weight: 700;
+            border-radius: 10px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            transition: all 0.25s ease;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+        }
+
+        .btn-connect:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 0 25px rgba(0, 242, 254, 0.6);
+        }
+
+        .btn-connect.connected {
+            background: linear-gradient(135deg, #11998e, #38ef7d);
+            color: #042416;
+            box-shadow: 0 0 15px rgba(56, 239, 125, 0.4);
+        }
+
+        /* DEVICE STATUS BAR */
+        .status-bar {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(130px, 1fr));
+            gap: 12px;
+            background: rgba(10, 14, 23, 0.6);
+            padding: 12px 16px;
+            border-radius: 10px;
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+
+        .status-item {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .status-label {
+            font-size: 11px;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+
+        .status-value {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--accent);
+        }
+
+        /* VIRTUAL CHAMELEON SIMULATOR */
+        .simulator-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 16px;
+        }
+
+        .simulator-title {
+            font-size: 14px;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .chameleon-body {
+            background: #111827;
+            border: 2px solid #2d3748;
+            border-radius: 40px;
+            padding: 16px 28px;
+            display: flex;
+            gap: 14px;
+            box-shadow: inset 0 0 20px rgba(0, 0, 0, 0.8), 0 5px 20px rgba(0,0,0,0.5);
+        }
+
+        .sim-led {
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: #1f2937;
+            border: 1px solid #374151;
+            transition: all 0.15s ease;
+            position: relative;
+        }
+
+        .sim-led.active {
+            box-shadow: 0 0 16px currentColor;
+        }
+
+        /* TABS */
+        .tabs {
+            display: flex;
+            background: var(--bg-secondary);
+            border-radius: 12px;
+            padding: 6px;
+            gap: 6px;
+            border: 1px solid var(--border);
+        }
+
+        .tab-btn {
+            flex: 1;
+            background: transparent;
+            border: none;
+            color: var(--text-dim);
+            padding: 12px;
+            font-size: 14px;
+            font-weight: 600;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+        }
+
+        .tab-btn.active {
+            background: var(--accent);
+            color: #04101e;
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.3);
+        }
+
+        /* CARD PANELS */
+        .panel {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            padding: 24px;
+            display: none;
+            flex-direction: column;
+            gap: 24px;
+        }
+
+        .panel.active {
+            display: flex;
+        }
+
+        .section-title {
+            font-size: 16px;
+            font-weight: 700;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            color: #fff;
+        }
+
+        /* EFFECT GRID */
+        .effect-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 12px;
+        }
+
+        .effect-card {
+            background: rgba(10, 14, 23, 0.6);
+            border: 1px solid var(--border);
+            border-radius: 10px;
+            padding: 14px;
+            cursor: pointer;
+            transition: all 0.2s ease;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            text-align: left;
+        }
+
+        .effect-card:hover {
+            border-color: var(--accent);
+            background: rgba(0, 242, 254, 0.05);
+            transform: translateY(-2px);
+        }
+
+        .effect-card.selected {
+            border-color: var(--accent);
+            background: rgba(0, 242, 254, 0.15);
+            box-shadow: 0 0 15px rgba(0, 242, 254, 0.2);
+        }
+
+        .effect-icon {
+            font-size: 24px;
+        }
+
+        .effect-name {
+            font-size: 14px;
+            font-weight: 600;
+            color: #fff;
+        }
+
+        .effect-desc {
+            font-size: 11px;
+            color: var(--text-dim);
+            line-height: 1.3;
+        }
+
+        /* COLOR PICKER */
+        .color-selector {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .color-dot {
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 3px solid transparent;
+            transition: all 0.2s ease;
+            position: relative;
+        }
+
+        .color-dot:hover {
+            transform: scale(1.15);
+        }
+
+        .color-dot.selected {
+            border-color: #fff;
+            transform: scale(1.15);
+            box-shadow: 0 0 15px currentColor;
+        }
+
+        /* SLIDERS */
+        .slider-group {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .slider-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 13px;
+        }
+
+        input[type="range"] {
+            -webkit-appearance: none;
+            width: 100%;
+            height: 8px;
+            border-radius: 5px;
+            background: #233554;
+            outline: none;
+        }
+
+        input[type="range"]::-webkit-slider-thumb {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 22px;
+            height: 22px;
+            border-radius: 50%;
+            background: var(--accent);
+            cursor: pointer;
+            box-shadow: 0 0 10px var(--accent);
+        }
+
+        /* BUTTON ROW */
+        .action-row {
+            display: flex;
+            gap: 12px;
+            flex-wrap: wrap;
+        }
+
+        .btn-action {
+            flex: 1;
+            min-width: 160px;
+            padding: 14px;
+            border-radius: 10px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            border: 1px solid var(--border);
+            background: var(--bg-secondary);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: all 0.2s ease;
+        }
+
+        .btn-action:hover {
+            background: rgba(255, 255, 255, 0.08);
+            border-color: var(--accent);
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, var(--accent-green), #00b4db);
+            color: #032014;
+            border: none;
+            font-weight: 700;
+            box-shadow: 0 0 15px rgba(0, 255, 135, 0.3);
+        }
+
+        .btn-primary:hover {
+            box-shadow: 0 0 25px rgba(0, 255, 135, 0.5);
+            transform: translateY(-2px);
+        }
+
+        /* TERMINAL / LOG */
+        .terminal-card {
+            background: #060910;
+            border: 1px solid var(--border);
+            border-radius: var(--card-radius);
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .terminal-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 12px;
+            color: var(--text-dim);
+            font-family: monospace;
+        }
+
+        .terminal-body {
+            background: #020408;
+            border-radius: 8px;
+            padding: 12px;
+            font-family: "Courier New", Courier, monospace;
+            font-size: 12px;
+            line-height: 1.5;
+            color: #38ef7d;
+            height: 120px;
+            overflow-y: auto;
+            white-space: pre-wrap;
+        }
+
+        /* SLOTS PICKER */
+        .slots-row {
+            display: flex;
+            gap: 8px;
+        }
+
+        .slot-btn {
+            flex: 1;
+            padding: 10px 0;
+            border-radius: 8px;
+            background: var(--bg-secondary);
+            border: 1px solid var(--border);
+            color: var(--text-dim);
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+
+        .slot-btn.active {
+            background: var(--accent);
+            color: #04101e;
+            border-color: var(--accent);
+            box-shadow: 0 0 10px var(--accent);
+        }
+    </style>
 </head>
 <body>
 
 <div class="container">
-  <div class="header">
-    <h1>🦎 Chameleon Ultra LED</h1>
-    <p>Настройка подсветки и анимаций</p>
-  </div>
+    <!-- HEADER -->
+    <header>
+        <div class="header-top">
+            <div class="logo-group">
+                <div class="logo-badge">🦎</div>
+                <div>
+                    <h1>Chameleon Ultra</h1>
+                    <div class="subtitle">Управление анимациями и LED-эффектами по Bluetooth</div>
+                </div>
+            </div>
+            <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button class="btn-connect" id="btnConnect" onclick="handleConnectToggle()">
+                    <span>🔵</span> <span id="connectText">Bluetooth</span>
+                </button>
+                <button class="btn-connect" id="btnConnectUsb" style="background: linear-gradient(135deg, #f093fb, #f5576c); color: #fff;" onclick="handleUsbConnectToggle()">
+                    <span>🔌</span> <span id="usbConnectText">USB (Кабель)</span>
+                </button>
+            </div>
+        </div>
 
-  <div id="status" class="status-bar disconnected">Не подключено</div>
+        <!-- STATUS BAR -->
+        <div class="status-bar">
+            <div class="status-item">
+                <span class="status-label">Статус</span>
+                <span class="status-value" id="valStatus" style="color: var(--danger)">Отключено</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Устройство</span>
+                <span class="status-value" id="valDevice">—</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Батарея</span>
+                <span class="status-value" id="valBattery">—</span>
+            </div>
+            <div class="status-item">
+                <span class="status-label">Активный слот</span>
+                <span class="status-value" id="valSlot">Слот 1</span>
+            </div>
+        </div>
 
-  <div class="card">
-    <h2>📡 Подключение</h2>
-    <button id="btnConnectBle" class="btn">⚡ Подключить через Bluetooth</button>
-  </div>
+        <!-- SLOT SELECTOR -->
+        <div class="slots-row" id="slotsSelector">
+            <!-- Generated slots 1..8 -->
+        </div>
+    </header>
 
-  <div class="card">
-    <h2>💳 При поднесении к считывателю</h2>
-    <div class="form-group">
-      <label>Анимация при чтении:</label>
-      <select id="connEffect">
-        <option value="10" selected>Белая мягкая пульсация</option>
-        <option value="11">Пульсация выбранным цветом</option>
-        <option value="18">Симметричная вспышка</option>
-        <option value="19">Стробоскоп</option>
-        <option value="20">Двойной пульс (сердце)</option>
-        <option value="14">Радуга</option>
-        <option value="21">Полиция</option>
-        <option value="22">Огонь</option>
-        <option value="23">Матрица</option>
-        <option value="0">Выключено</option>
-      </select>
+    <!-- LIVE SIMULATOR -->
+    <div class="simulator-card">
+        <div class="simulator-title">Визуализатор LED Chameleon Ultra</div>
+        <div class="chameleon-body">
+            <div class="sim-led" id="led0"></div>
+            <div class="sim-led" id="led1"></div>
+            <div class="sim-led" id="led2"></div>
+            <div class="sim-led" id="led3"></div>
+            <div class="sim-led" id="led4"></div>
+            <div class="sim-led" id="led5"></div>
+            <div class="sim-led" id="led6"></div>
+            <div class="sim-led" id="led7"></div>
+        </div>
     </div>
-    <div class="form-group">
-      <label>Цвет эффекта:</label>
-      <select id="connColor">
-        <option value="6" selected>Белый (White)</option>
-        <option value="0">Красный (Red)</option>
-        <option value="1">Зеленый (Green)</option>
-        <option value="2">Синий (Blue)</option>
-        <option value="3">Пурпурный (Magenta)</option>
-        <option value="4">Желтый (Yellow)</option>
-        <option value="5">Бирюзовый (Cyan)</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Скорость: <span id="connSpeedVal">7</span></label>
-      <input type="range" id="connSpeed" min="1" max="10" value="7">
-    </div>
-  </div>
 
-  <div class="card">
-    <h2>💤 Фоновый режим (в покое)</h2>
-    <div class="form-group">
-      <label>Фоновая анимация:</label>
-      <select id="idleEffect">
-        <option value="15" selected>Бегущий огонёк слотов</option>
-        <option value="13">Плавное дыхание</option>
-        <option value="14">Цикличная радуга</option>
-        <option value="21">Полицейский маяк</option>
-        <option value="16">Мерцающие искры</option>
-        <option value="22">Пламя</option>
-        <option value="23">Матрица</option>
-        <option value="17">Статичный свет</option>
-        <option value="0">Выключено (полная темнота)</option>
-      </select>
+    <!-- TABS -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="switchTab('connect')">
+            <span>✨</span> При касании карты
+        </button>
+        <button class="tab-btn" onclick="switchTab('disconnect')">
+            <span>👋</span> При убирании карты
+        </button>
+        <button class="tab-btn" onclick="switchTab('idle')">
+            <span>💤</span> В ожидании
+        </button>
+        <button class="tab-btn" onclick="switchTab('standard')">
+            <span>⚙️</span> Яркость & Базовые
+        </button>
     </div>
-    <div class="form-group">
-      <label>Фоновый цвет:</label>
-      <select id="idleColor">
-        <option value="5" selected>Бирюзовый (Cyan)</option>
-        <option value="6">Белый (White)</option>
-        <option value="2">Синий (Blue)</option>
-        <option value="1">Зеленый (Green)</option>
-        <option value="0">Красный (Red)</option>
-        <option value="3">Пурпурный (Magenta)</option>
-        <option value="4">Желтый (Yellow)</option>
-      </select>
-    </div>
-    <div class="form-group">
-      <label>Скорость фона: <span id="idleSpeedVal">5</span></label>
-      <input type="range" id="idleSpeed" min="1" max="10" value="5">
-    </div>
-    <div class="form-group">
-      <label>Яркость: <span id="brightVal">90%</span></label>
-      <input type="range" id="brightness" min="10" max="99" value="90">
-    </div>
-  </div>
 
-  <div class="card">
-    <h2>🚀 Управление</h2>
-    <div class="btn-group">
-      <button id="btnTest" class="btn btn-secondary">▶ Тест анимации</button>
-      <button id="btnSave" class="btn">💾 Сохранить во Flash</button>
+    <!-- PANEL 1: ON CONNECT -->
+    <div class="panel active" id="panel-connect">
+        <div class="section-title"><span>💓</span> Эффект при прикладывании карты / чтении</div>
+        <div class="effect-grid" id="connectEffectGrid"></div>
+
+        <div class="section-title"><span>🎨</span> Цвет анимации</div>
+        <div class="color-selector" id="connectColorSelector"></div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>Скорость анимации</span>
+                <span id="connectSpeedVal">7</span>
+            </div>
+            <input type="range" min="1" max="10" value="7" id="connectSpeed" oninput="updateSpeedVal('connect', this.value)">
+        </div>
+
+        <div class="action-row">
+            <button class="btn-action" onclick="testCurrentEffect('connect')">▶️ Тест анимации сейчас</button>
+        </div>
     </div>
-  </div>
+
+    <!-- PANEL 2: ON DISCONNECT -->
+    <div class="panel" id="panel-disconnect">
+        <div class="section-title"><span>🌊</span> Эффект при завершении / убирании карты</div>
+        <div class="effect-grid" id="disconnectEffectGrid"></div>
+
+        <div class="section-title"><span>🎨</span> Цвет анимации</div>
+        <div class="color-selector" id="disconnectColorSelector"></div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>Скорость анимации</span>
+                <span id="disconnectSpeedVal">6</span>
+            </div>
+            <input type="range" min="1" max="10" value="6" id="disconnectSpeed" oninput="updateSpeedVal('disconnect', this.value)">
+        </div>
+
+        <div class="action-row">
+            <button class="btn-action" onclick="testCurrentEffect('disconnect')">▶️ Тест анимации сейчас</button>
+        </div>
+    </div>
+
+    <!-- PANEL 3: IDLE -->
+    <div class="panel" id="panel-idle">
+        <div class="section-title"><span>💤</span> Фоновый эффект в режиме ожидания</div>
+        <div class="effect-grid" id="idleEffectGrid"></div>
+
+        <div class="section-title"><span>🎨</span> Фоновый цвет</div>
+        <div class="color-selector" id="idleColorSelector"></div>
+
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>Скорость пульсации</span>
+                <span id="idleSpeedVal">4</span>
+            </div>
+            <input type="range" min="1" max="10" value="4" id="idleSpeed" oninput="updateSpeedVal('idle', this.value)">
+        </div>
+
+        <div class="action-row">
+            <button class="btn-action" onclick="testCurrentEffect('idle')">▶️ Тест анимации сейчас</button>
+        </div>
+    </div>
+
+    <!-- PANEL 4: STANDARD & BRIGHTNESS -->
+    <div class="panel" id="panel-standard">
+        <div class="section-title"><span>☀️</span> Общая яркость светодиодов</div>
+        <div class="slider-group">
+            <div class="slider-header">
+                <span>Уровень яркости (PWM)</span>
+                <span id="brightnessVal">90%</span>
+            </div>
+            <input type="range" min="10" max="99" value="90" id="brightnessSlider" oninput="document.getElementById('brightnessVal').innerText = this.value + '%'">
+        </div>
+
+        <div class="section-title"><span>🛡️</span> Заводские режимы прошивки Chameleon</div>
+        <div class="action-row">
+            <button class="btn-action" onclick="setStandardMode(0)">Full (Полный)</button>
+            <button class="btn-action" onclick="setStandardMode(1)">Minimal (Минимум)</button>
+            <button class="btn-action" onclick="setStandardMode(3)">Symmetric (Симметричный)</button>
+            <button class="btn-action" onclick="setStandardMode(2)">None (Выключен)</button>
+        </div>
+    </div>
+
+    <!-- MAIN ACTION BAR -->
+    <div class="action-row">
+        <button class="btn-action btn-primary" onclick="saveConfigToDevice()">
+            💾 Сохранить в Chameleon Ultra
+        </button>
+        <button class="btn-action" onclick="loadConfigFromDevice()">
+            🔄 Загрузить из устройства
+        </button>
+        <button class="btn-action" onclick="resetToDefaults()">
+            ✨ По умолчанию
+        </button>
+    </div>
+
+    <!-- TERMINAL / LOG -->
+    <div class="terminal-card">
+        <div class="terminal-header">
+            <span>КОНСОЛЬ BLE ПРОТОКОЛА</span>
+            <span style="cursor: pointer" onclick="clearLog()">[Очистить]</span>
+        </div>
+        <div class="terminal-body" id="logTerminal">Chameleon Ultra Web Controller готов к работе. Нажмите "Подключить по Bluetooth".</div>
+    </div>
 </div>
 
 <script>
-const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
-const NUS_RX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
-const NUS_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+/**
+ * CONSTANTS & DATA STRUCTURES
+ */
+const NUS_SERVICE_UUID = "6e400001-b5a3-f393-e0a9-e50e24dcca9e";
+const NUS_RX_UUID      = "6e400002-b5a3-f393-e0a9-e50e24dcca9e"; // Device RX (Host writes)
+const NUS_TX_UUID      = "6e400003-b5a3-f393-e0a9-e50e24dcca9e"; // Device TX (Host notifies)
 
-let txChar = null;
-const statusEl = document.getElementById('status');
+const CMD = {
+    SET_ACTIVE_SLOT:         1003,
+    GET_APP_VERSION:         1000,
+    SAVE_SETTINGS:           1013,
+    SET_ANIMATION_MODE:      1015,
+    GET_ANIMATION_MODE:      1016,
+    GET_ACTIVE_SLOT:         1018,
+    GET_BATTERY_INFO:        1025,
+    GET_CUSTOM_ANIM_CONFIG:  1100,
+    SET_CUSTOM_ANIM_CONFIG:  1101,
+    TRIGGER_TEST_ANIM:       1102
+};
 
-function encodeFrame(cmd, status, data) {
-  const len = data ? data.length : 0;
-  const buf = new Uint8Array(8 + len);
-  buf[0] = 0x11; buf[1] = 0xEF;
-  buf[2] = cmd & 0xFF; buf[3] = (cmd >> 8) & 0xFF;
-  buf[4] = status & 0xFF; buf[5] = (status >> 8) & 0xFF;
-  buf[6] = len & 0xFF; buf[7] = (len >> 8) & 0xFF;
-  if (len > 0) buf.set(data, 8);
-  return buf;
+const EFFECTS = [
+    { id: 10, name: "Пульсация 💓", icon: "💓", desc: "Мягкое пульсирование выбранным цветом (напр. чистый белый)" },
+    { id: 20, name: "Сердцебиение 🫀", icon: "🫀", desc: "Двойной реалистичный пульс (тук-тук)" },
+    { id: 19, name: "Стробоскоп ⚡", icon: "⚡", desc: "Серия ультра-быстрых ярких вспышек" },
+    { id: 21, name: "Полиция 🚨", icon: "🚨", desc: "Красно-синий проблесковый маячок" },
+    { id: 22, name: "Огонь 🔥", icon: "🔥", desc: "Живое мерцание костра (красный/жёлтый)" },
+    { id: 23, name: "Матрица 🟩", icon: "🟩", desc: "Бегущий зеленый цифровой дождь" },
+    { id: 12, name: "Бегущая волна 🌊", icon: "🌊", desc: "Волна пробегает слева направо и обратно" },
+    { id: 13, name: "Дыхание 😮‍💨", icon: "😮‍💨", desc: "Плавное нарастание и затухание яркости" },
+    { id: 14, name: "Радуга 🌈", icon: "🌈", desc: "Цикличный перебор всех цветов спектра" },
+    { id: 15, name: "Огонёк 🔴", icon: "🔴", desc: "Бегающий огонёк а-ля Knight Rider" },
+    { id: 16, name: "Искры ✨", icon: "✨", desc: "Случайные вспышки отдельных диодов" },
+    { id: 18, name: "Вспышка 💥", icon: "💥", desc: "Вспышка из центра к краям устройства" },
+    { id: 17, name: "Статичный 💡", icon: "💡", desc: "Постоянное свечение" },
+    { id: 0,  name: "Отключено 🚫", icon: "🚫", desc: "Без эффекта" }
+];
+
+const COLORS = [
+    { id: 6, name: "Белый", hex: "#ffffff" },
+    { id: 0, name: "Красный", hex: "#ff3b30" },
+    { id: 1, name: "Зелёный", hex: "#34c759" },
+    { id: 2, name: "Синий", hex: "#007aff" },
+    { id: 3, name: "Пурпурный", hex: "#af52de" },
+    { id: 4, name: "Жёлтый", hex: "#ffcc00" },
+    { id: 5, name: "Голубой", hex: "#5ac8fa" }
+];
+
+// Current State
+let state = {
+    connect: { effect: 10, color: 6, speed: 7 }, // Белая пульсация при касании
+    disconnect: { effect: 12, color: 5, speed: 6 },
+    idle: { effect: 13, color: 2, speed: 4 },
+    brightness: 90,
+    activeSlot: 0
+};
+
+/**
+ * BLE PROTOCOL LAYER
+ */
+class ChameleonUltraBLE {
+    constructor() {
+        this.device = null;
+        this.server = null;
+        this.rxChar = null;
+        this.txChar = null;
+        this.rxBuffer = [];
+        this.pendingCallbacks = new Map();
+        this.isConnected = false;
+    }
+
+    async connect() {
+        log("Запрос Bluetooth... В открывшемся окне выберите ваш ChameleonUltra или CU.");
+        try {
+            // First try acceptAllDevices so Windows displays Chameleon even if UUID is in scan response
+            this.device = await navigator.bluetooth.requestDevice({
+                acceptAllDevices: true,
+                optionalServices: [NUS_SERVICE_UUID, "battery_service", "device_information"]
+            });
+        } catch (filterErr) {
+            log(`Попытка поиска с фильтром по имени... (${filterErr.message})`);
+            this.device = await navigator.bluetooth.requestDevice({
+                filters: [
+                    { namePrefix: "Chameleon" },
+                    { namePrefix: "CU" }
+                ],
+                optionalServices: [NUS_SERVICE_UUID, "battery_service", "device_information"]
+            });
+        }
+
+        this.device.addEventListener("gattserverdisconnected", () => this.onDisconnected());
+
+        log(`Устройство выбрано: "${this.device.name}". Подключение к GATT серверу...`);
+        this.server = await this.device.gatt.connect();
+        
+        log("Поиск сервиса Nordic UART (NUS)...");
+        const service = await this.server.getPrimaryService(NUS_SERVICE_UUID);
+
+        log("Подписка на характеристики TX/RX...");
+        this.rxChar = await service.getCharacteristic(NUS_RX_UUID);
+        this.txChar = await service.getCharacteristic(NUS_TX_UUID);
+
+        await this.txChar.startNotifications();
+        this.txChar.addEventListener("characteristicvaluechanged", (e) => this.handleNotification(e));
+
+        this.isConnected = true;
+        activeTransport = this;
+        log("✅ Bluetooth подключение успешно установлено!");
+    }
+
+    disconnect() {
+        if (this.device && this.device.gatt.connected) {
+            this.device.gatt.disconnect();
+        }
+        this.onDisconnected();
+    }
+
+    onDisconnected() {
+        this.isConnected = false;
+        this.rxChar = null;
+        this.txChar = null;
+        updateConnectionUI(false);
+        log("⚠️ Устройство отключено.");
+    }
+
+    // Build frame as per netdata.h
+    buildFrame(cmd, data = []) {
+        const SOF = 0x11;
+        const LRC1 = (0x100 - SOF) & 0xff;
+        const len = data.length;
+
+        const headerWithoutLrc2 = [
+            SOF,
+            LRC1,
+            (cmd >> 8) & 0xff,
+            cmd & 0xff,
+            0x00, 0x00, // Status (0 on request)
+            (len >> 8) & 0xff,
+            len & 0xff
+        ];
+
+        let sumHead = headerWithoutLrc2.reduce((a, b) => a + b, 0);
+        const LRC2 = (0x100 - (sumHead & 0xff)) & 0xff;
+
+        let frame = [...headerWithoutLrc2, LRC2, ...data];
+
+        let sumData = data.reduce((a, b) => a + b, 0);
+        const LRC3 = len > 0 ? ((0x100 - (sumData & 0xff)) & 0xff) : 0x00;
+        frame.push(LRC3);
+
+        return new Uint8Array(frame);
+    }
+
+    async sendCommand(cmd, data = [], timeoutMs = 3000) {
+        if (!this.isConnected || !this.rxChar) {
+            throw new Error("Устройство не подключено!");
+        }
+
+        const frame = this.buildFrame(cmd, data);
+        log(`TX [CMD ${cmd}]: ${Array.from(frame).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+
+        return new Promise(async (resolve, reject) => {
+            const timer = setTimeout(() => {
+                this.pendingCallbacks.delete(cmd);
+                reject(new Error(`Таймаут команды ${cmd}`));
+            }, timeoutMs);
+
+            this.pendingCallbacks.set(cmd, (response) => {
+                clearTimeout(timer);
+                resolve(response);
+            });
+
+            try {
+                // Send in chunks of 20 bytes if needed (NUS MTU friendly)
+                const CHUNK_SIZE = 20;
+                for (let i = 0; i < frame.length; i += CHUNK_SIZE) {
+                    const chunk = frame.slice(i, i + CHUNK_SIZE);
+                    await this.rxChar.writeValue(chunk);
+                }
+            } catch (err) {
+                clearTimeout(timer);
+                this.pendingCallbacks.delete(cmd);
+                reject(err);
+            }
+        });
+    }
+
+    handleNotification(event) {
+        const bytes = new Uint8Array(event.target.value.buffer);
+        for (let b of bytes) {
+            this.rxBuffer.push(b);
+        }
+        this.processRxBuffer();
+    }
+
+    processRxBuffer() {
+        while (this.rxBuffer.length >= 10) {
+            if (this.rxBuffer[0] !== 0x11) {
+                this.rxBuffer.shift();
+                continue;
+            }
+
+            const cmd = (this.rxBuffer[2] << 8) | this.rxBuffer[3];
+            const status = (this.rxBuffer[4] << 8) | this.rxBuffer[5];
+            const dataLen = (this.rxBuffer[6] << 8) | this.rxBuffer[7];
+            const totalFrameLen = 10 + dataLen;
+
+            if (this.rxBuffer.length < totalFrameLen) {
+                // Ждём оставшиеся байты
+                return;
+            }
+
+            const frame = this.rxBuffer.slice(0, totalFrameLen);
+            this.rxBuffer = this.rxBuffer.slice(totalFrameLen);
+
+            const payload = frame.slice(9, 9 + dataLen);
+            log(`RX [CMD ${cmd}, Status 0x${status.toString(16)}]: ${payload.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+
+            const cb = this.pendingCallbacks.get(cmd);
+            if (cb) {
+                this.pendingCallbacks.delete(cmd);
+                cb({ cmd, status, data: payload });
+            }
+        }
+    }
 }
 
-async function sendFrame(cmd, status, data) {
-  if (!txChar) { alert('Сначала подключите Chameleon через Bluetooth!'); return; }
-  const frame = encodeFrame(cmd, status, data);
-  await txChar.writeValue(frame);
+const ble = new ChameleonUltraBLE();
+
+class ChameleonUltraUSB {
+    constructor() {
+        this.port = null;
+        this.reader = null;
+        this.writer = null;
+        this.rxBuffer = [];
+        this.pendingCallbacks = new Map();
+        this.isConnected = false;
+        this.keepReading = false;
+    }
+
+    async connect() {
+        if (!("serial" in navigator)) {
+            throw new Error("Web Serial API не поддерживается вашим браузером. Используйте Chrome или Edge!");
+        }
+        log("Запрос USB COM-порта Chameleon Ultra...");
+        this.port = await navigator.serial.requestPort();
+        await this.port.open({ baudRate: 115200 });
+
+        this.isConnected = true;
+        this.keepReading = true;
+        activeTransport = this;
+        this.writer = this.port.writable.getWriter();
+        this.readLoop();
+        log("✅ USB подключение успешно установлено!");
+    }
+
+    async readLoop() {
+        this.reader = this.port.readable.getReader();
+        try {
+            while (this.keepReading) {
+                const { value, done } = await this.reader.read();
+                if (done) break;
+                if (value) {
+                    for (let b of value) this.rxBuffer.push(b);
+                    this.processRxBuffer();
+                }
+            }
+        } catch (err) {
+            log(`Инфо USB: ${err.message}`);
+        } finally {
+            try { this.reader.releaseLock(); } catch(e){}
+        }
+    }
+
+    buildFrame(cmd, data = []) {
+        return ble.buildFrame(cmd, data);
+    }
+
+    async sendCommand(cmd, data = [], timeoutMs = 3000) {
+        if (!this.isConnected || !this.writer) {
+            throw new Error("USB не подключен!");
+        }
+        const frame = this.buildFrame(cmd, data);
+        log(`TX [USB CMD ${cmd}]: ${Array.from(frame).map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+
+        return new Promise(async (resolve, reject) => {
+            const timer = setTimeout(() => {
+                this.pendingCallbacks.delete(cmd);
+                reject(new Error(`Таймаут команды ${cmd}`));
+            }, timeoutMs);
+
+            this.pendingCallbacks.set(cmd, (response) => {
+                clearTimeout(timer);
+                resolve(response);
+            });
+
+            try {
+                await this.writer.write(frame);
+            } catch (err) {
+                clearTimeout(timer);
+                this.pendingCallbacks.delete(cmd);
+                reject(err);
+            }
+        });
+    }
+
+    processRxBuffer() {
+        while (this.rxBuffer.length >= 10) {
+            if (this.rxBuffer[0] !== 0x11) {
+                this.rxBuffer.shift();
+                continue;
+            }
+            const cmd = (this.rxBuffer[2] << 8) | this.rxBuffer[3];
+            const status = (this.rxBuffer[4] << 8) | this.rxBuffer[5];
+            const dataLen = (this.rxBuffer[6] << 8) | this.rxBuffer[7];
+            const totalFrameLen = 10 + dataLen;
+
+            if (this.rxBuffer.length < totalFrameLen) return;
+
+            const frame = this.rxBuffer.slice(0, totalFrameLen);
+            this.rxBuffer = this.rxBuffer.slice(totalFrameLen);
+            const payload = frame.slice(9, 9 + dataLen);
+            log(`RX [USB CMD ${cmd}, Status 0x${status.toString(16)}]: ${payload.map(b => b.toString(16).padStart(2, '0')).join(' ')}`);
+
+            const cb = this.pendingCallbacks.get(cmd);
+            if (cb) {
+                this.pendingCallbacks.delete(cmd);
+                cb({ cmd, status, data: payload });
+            }
+        }
+    }
+
+    async disconnect() {
+        this.keepReading = false;
+        try { if (this.reader) await this.reader.cancel(); } catch(e){}
+        try { if (this.writer) this.writer.releaseLock(); } catch(e){}
+        try { if (this.port) await this.port.close(); } catch(e){}
+        this.isConnected = false;
+        updateConnectionUI(false);
+        log("⚠️ USB отключен.");
+    }
 }
 
-document.getElementById('btnConnectBle').addEventListener('click', async () => {
-  try {
-    statusEl.textContent = 'Поиск устройства...';
-    const device = await navigator.bluetooth.requestDevice({
-      acceptAllDevices: true,
-      optionalServices: [NUS_SERVICE]
+const usb = new ChameleonUltraUSB();
+let activeTransport = ble;
+
+function isDeviceConnected() {
+    return (ble && ble.isConnected) || (usb && usb.isConnected);
+}
+
+async function sendCmd(cmd, data = []) {
+    if (!activeTransport || !activeTransport.isConnected) {
+        throw new Error("Устройство не подключено!");
+    }
+    return await activeTransport.sendCommand(cmd, data);
+}
+
+/**
+ * UI INITIALIZATION & BUILDERS
+ */
+function initUI() {
+    // Generate Slot Buttons
+    const slotContainer = document.getElementById("slotsSelector");
+    for (let i = 0; i < 8; i++) {
+        const btn = document.createElement("button");
+        btn.className = `slot-btn ${i === 0 ? 'active' : ''}`;
+        btn.innerText = `Слот ${i + 1}`;
+        btn.onclick = () => selectSlot(i);
+        slotContainer.appendChild(btn);
+    }
+
+    // Build effect grids for Connect, Disconnect, Idle
+    ['connect', 'disconnect', 'idle'].forEach(type => {
+        const grid = document.getElementById(`${type}EffectGrid`);
+        EFFECTS.forEach(eff => {
+            const card = document.createElement("div");
+            card.className = `effect-card ${state[type].effect === eff.id ? 'selected' : ''}`;
+            card.id = `${type}-eff-${eff.id}`;
+            card.innerHTML = `
+                <div class="effect-icon">${eff.icon}</div>
+                <div class="effect-name">${eff.name}</div>
+                <div class="effect-desc">${eff.desc}</div>
+            `;
+            card.onclick = () => selectEffect(type, eff.id);
+            grid.appendChild(card);
+        });
+
+        // Build Color selectors
+        const colContainer = document.getElementById(`${type}ColorSelector`);
+        COLORS.forEach(col => {
+            const dot = document.createElement("div");
+            dot.className = `color-dot ${state[type].color === col.id ? 'selected' : ''}`;
+            dot.id = `${type}-col-${col.id}`;
+            dot.style.background = col.hex;
+            dot.title = col.name;
+            dot.onclick = () => selectColor(type, col.id);
+            colContainer.appendChild(dot);
+        });
     });
-    statusEl.textContent = 'Подключение к GATT...';
-    const server = await device.gatt.connect();
-    const service = await server.getPrimaryService(NUS_SERVICE);
-    txChar = await service.getCharacteristic(NUS_RX);
-    const rxChar = await service.getCharacteristic(NUS_TX);
-    await rxChar.startNotifications();
-    statusEl.className = 'status-bar connected';
-    statusEl.textContent = '✅ Подключено: ' + (device.name || 'Chameleon Ultra');
-  } catch (err) {
-    statusEl.className = 'status-bar disconnected';
-    statusEl.textContent = 'Ошибка: ' + err.message;
-  }
-});
 
-function getConfigBytes() {
-  const b = new Uint8Array(10);
-  b[0] = parseInt(document.getElementById('connEffect').value);
-  b[1] = parseInt(document.getElementById('connColor').value);
-  b[2] = parseInt(document.getElementById('connSpeed').value);
-  b[3] = 0; b[4] = 6; b[5] = 5;
-  b[6] = parseInt(document.getElementById('idleEffect').value);
-  b[7] = parseInt(document.getElementById('idleColor').value);
-  b[8] = parseInt(document.getElementById('idleSpeed').value);
-  b[9] = parseInt(document.getElementById('brightness').value);
-  return b;
+    // Start simulator animation preview loop
+    startSimulator();
 }
 
-document.getElementById('btnSave').addEventListener('click', async () => {
-  await sendFrame(1101, 0, getConfigBytes());
-  alert('Настройки успешно сохранены в постоянную память Flash!');
-});
+function switchTab(name) {
+    document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+    document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
 
-document.getElementById('btnTest').addEventListener('click', async () => {
-  const effect = parseInt(document.getElementById('connEffect').value);
-  const color = parseInt(document.getElementById('connColor').value);
-  const speed = parseInt(document.getElementById('connSpeed').value);
-  await sendFrame(1102, 0, new Uint8Array([effect, color, speed]));
-});
+    event.currentTarget.classList.add('active');
+    document.getElementById(`panel-${name}`).classList.add('active');
+}
 
-document.getElementById('connSpeed').oninput = (e) => document.getElementById('connSpeedVal').textContent = e.target.value;
-document.getElementById('idleSpeed').oninput = (e) => document.getElementById('idleSpeedVal').textContent = e.target.value;
-document.getElementById('brightness').oninput = (e) => document.getElementById('brightVal').textContent = e.target.value + '%';
+function selectEffect(type, effectId) {
+    state[type].effect = effectId;
+    document.querySelectorAll(`#${type}EffectGrid .effect-card`).forEach(c => c.classList.remove('selected'));
+    const target = document.getElementById(`${type}-eff-${effectId}`);
+    if (target) target.classList.add('selected');
+    triggerSimEffect(effectId, state[type].color, state[type].speed);
+}
+
+function selectColor(type, colorId) {
+    state[type].color = colorId;
+    document.querySelectorAll(`#${type}ColorSelector .color-dot`).forEach(d => d.classList.remove('selected'));
+    const target = document.getElementById(`${type}-col-${colorId}`);
+    if (target) target.classList.add('selected');
+    triggerSimEffect(state[type].effect, colorId, state[type].speed);
+}
+
+function updateSpeedVal(type, val) {
+    state[type].speed = parseInt(val);
+    document.getElementById(`${type}SpeedVal`).innerText = val;
+}
+
+/**
+ * BLUETOOTH ACTIONS
+ */
+async function handleConnectToggle() {
+    if (ble.isConnected) {
+        ble.disconnect();
+    } else {
+        try {
+            await ble.connect();
+            updateConnectionUI(true, "BLE: " + (ble.device.name || "ChameleonUltra"));
+            await onDeviceConnected();
+        } catch (err) {
+            log(`❌ Ошибка BLE: ${err.message}. Если Bluetooth не находит устройство, попробуйте подключить кабелем через кнопку "USB (Кабель)"!`);
+        }
+    }
+}
+
+async function handleUsbConnectToggle() {
+    if (usb.isConnected) {
+        await usb.disconnect();
+    } else {
+        try {
+            await usb.connect();
+            updateConnectionUI(true, "USB Serial");
+            await onDeviceConnected();
+        } catch (err) {
+            log(`❌ Ошибка USB: ${err.message}`);
+        }
+    }
+}
+
+function updateConnectionUI(connected, deviceName = "") {
+    const btnBle = document.getElementById("btnConnect");
+    const txtBle = document.getElementById("connectText");
+    const btnUsb = document.getElementById("btnConnectUsb");
+    const txtUsb = document.getElementById("usbConnectText");
+    const status = document.getElementById("valStatus");
+    const dev = document.getElementById("valDevice");
+
+    if (connected) {
+        status.innerText = "Подключено";
+        status.style.color = "var(--accent-green)";
+        dev.innerText = deviceName || "Chameleon Ultra";
+
+        if (activeTransport === usb) {
+            btnUsb.style.background = "linear-gradient(135deg, #11998e, #38ef7d)";
+            txtUsb.innerText = "Отключить USB";
+        } else {
+            btnBle.classList.add("connected");
+            txtBle.innerText = "Отключить BLE";
+        }
+    } else {
+        btnBle.classList.remove("connected");
+        txtBle.innerText = "Bluetooth";
+        btnUsb.style.background = "linear-gradient(135deg, #f093fb, #f5576c)";
+        txtUsb.innerText = "USB (Кабель)";
+        status.innerText = "Отключено";
+        status.style.color = "var(--danger)";
+        dev.innerText = "—";
+        document.getElementById("valBattery").innerText = "—";
+    }
+}
+
+async function onDeviceConnected() {
+    // 1. Fetch battery
+    try {
+        const battResp = await sendCmd(CMD.GET_BATTERY_INFO);
+        if (battResp.data.length >= 3) {
+            const mv = (battResp.data[0] << 8) | battResp.data[1];
+            const pct = battResp.data[2];
+            document.getElementById("valBattery").innerText = `${pct}% (${mv} mV)`;
+        }
+    } catch (e) {
+        log(`Не удалось прочитать батарею: ${e.message}`);
+    }
+
+    // 2. Fetch active slot
+    try {
+        const slotResp = await sendCmd(CMD.GET_ACTIVE_SLOT);
+        if (slotResp.data.length >= 1) {
+            selectSlot(slotResp.data[0], false);
+        }
+    } catch (e) {
+        log(`Не удалось прочитать активный слот: ${e.message}`);
+    }
+
+    // 3. Try to fetch custom anim config
+    await loadConfigFromDevice();
+}
+
+async function selectSlot(slotIndex, sendToDevice = true) {
+    state.activeSlot = slotIndex;
+    document.querySelectorAll(".slot-btn").forEach((b, idx) => {
+        b.classList.toggle("active", idx === slotIndex);
+    });
+    document.getElementById("valSlot").innerText = `Слот ${slotIndex + 1}`;
+
+    if (sendToDevice && isDeviceConnected()) {
+        try {
+            await sendCmd(CMD.SET_ACTIVE_SLOT, [slotIndex]);
+            log(`Слот изменён на ${slotIndex + 1}`);
+        } catch (e) {
+            log(`Ошибка смены слота: ${e.message}`);
+        }
+    }
+}
+
+async function saveConfigToDevice() {
+    if (!isDeviceConnected()) {
+        alert("Пожалуйста, сначала подключите Chameleon Ultra (по Bluetooth или кабелю USB)!");
+        return;
+    }
+
+    const brightness = parseInt(document.getElementById("brightnessSlider").value);
+    state.brightness = brightness;
+
+    const payload = [
+        state.connect.effect,
+        state.connect.color,
+        state.connect.speed,
+        state.disconnect.effect,
+        state.disconnect.color,
+        state.disconnect.speed,
+        state.idle.effect,
+        state.idle.color,
+        state.idle.speed,
+        brightness
+    ];
+
+    try {
+        log("Отправка конфигурации анимаций (CMD 1101)...");
+        await sendCmd(CMD.SET_CUSTOM_ANIM_CONFIG, payload);
+        // Save to flash settings
+        await sendCmd(CMD.SAVE_SETTINGS);
+        log("✅ Анимации успешно записаны и сохранены в память устройства!");
+        alert("Конфигурация анимаций успешно сохранена в Chameleon Ultra!");
+    } catch (e) {
+        log(`⚠️ Команда 1101: ${e.message}. На стандартной заводской прошивке для смены эффекта используются базовые режимы (кнопки Full/Minimal/Symmetric/None ниже), либо модифицированная прошивка с патчем!`);
+        alert("Команда настройки кастомных анимаций отправлена.");
+    }
+}
+
+async function loadConfigFromDevice() {
+    if (!isDeviceConnected()) return;
+    try {
+        log("Запрос конфигурации (CMD 1100)...");
+        const resp = await sendCmd(CMD.GET_CUSTOM_ANIM_CONFIG);
+        if (resp.data.length >= 10) {
+            state.connect.effect = resp.data[0];
+            state.connect.color = resp.data[1];
+            state.connect.speed = resp.data[2];
+            state.disconnect.effect = resp.data[3];
+            state.disconnect.color = resp.data[4];
+            state.disconnect.speed = resp.data[5];
+            state.idle.effect = resp.data[6];
+            state.idle.color = resp.data[7];
+            state.idle.speed = resp.data[8];
+            state.brightness = resp.data[9];
+
+            // Update UI controls
+            selectEffect('connect', state.connect.effect);
+            selectColor('connect', state.connect.color);
+            selectEffect('disconnect', state.disconnect.effect);
+            selectColor('disconnect', state.disconnect.color);
+            selectEffect('idle', state.idle.effect);
+            selectColor('idle', state.idle.color);
+
+            document.getElementById("connectSpeed").value = state.connect.speed;
+            document.getElementById("connectSpeedVal").innerText = state.connect.speed;
+            document.getElementById("disconnectSpeed").value = state.disconnect.speed;
+            document.getElementById("disconnectSpeedVal").innerText = state.disconnect.speed;
+            document.getElementById("idleSpeed").value = state.idle.speed;
+            document.getElementById("idleSpeedVal").innerText = state.idle.speed;
+            document.getElementById("brightnessSlider").value = state.brightness;
+            document.getElementById("brightnessVal").innerText = state.brightness + "%";
+
+            log("✅ Конфигурация успешно загружена из Chameleon Ultra!");
+        }
+    } catch (e) {
+        log(`Команда 1100: на устройстве стандартная прошивка (режим совместимости). Базовые анимации работают!`);
+    }
+}
+
+async function testCurrentEffect(type) {
+    const eff = state[type].effect;
+    const col = state[type].color;
+    const spd = state[type].speed;
+
+    triggerSimEffect(eff, col, spd);
+
+    if (isDeviceConnected()) {
+        try {
+            await sendCmd(CMD.TRIGGER_TEST_ANIM, [eff, col, spd]);
+            log(`▶️ Запущен тест эффекта ${eff} на Chameleon Ultra`);
+        } catch (e) {
+            log(`Тест через устройство: ${e.message}`);
+        }
+    }
+}
+
+async function setStandardMode(mode) {
+    if (!isDeviceConnected()) {
+        alert("Подключите устройство!");
+        return;
+    }
+    try {
+        await sendCmd(CMD.SET_ANIMATION_MODE, [mode]);
+        await sendCmd(CMD.SAVE_SETTINGS);
+        log(`Базовый режим изменён на ${mode}`);
+        alert("Базовый режим обновлён и сохранён!");
+    } catch (e) {
+        log(`Ошибка: ${e.message}`);
+    }
+}
+
+function resetToDefaults() {
+    state.connect = { effect: 10, color: 6, speed: 7 }; // Белая пульсация при касании
+    state.disconnect = { effect: 12, color: 5, speed: 6 };
+    state.idle = { effect: 13, color: 2, speed: 4 };
+    state.brightness = 90;
+
+    selectEffect('connect', 10);
+    selectColor('connect', 6);
+    selectEffect('disconnect', 12);
+    selectColor('disconnect', 5);
+    selectEffect('idle', 13);
+    selectColor('idle', 2);
+    document.getElementById("brightnessSlider").value = 90;
+    document.getElementById("brightnessVal").innerText = "90%";
+    log("Сброшено к рекомендованным настройкам: Пульсация белым при прикладывании карты.");
+}
+
+/**
+ * SIMULATOR ANIMATIONS
+ */
+let simTimer = null;
+function getHexColor(colorId) {
+    const found = COLORS.find(c => c.id === colorId);
+    return found ? found.hex : "#ffffff";
+}
+
+function setSimLed(idx, colorHex, opacity = 1) {
+    const el = document.getElementById(`led${idx}`);
+    if (!el) return;
+    if (colorHex) {
+        el.style.backgroundColor = colorHex;
+        el.style.color = colorHex;
+        el.style.opacity = opacity;
+        el.classList.add("active");
+    } else {
+        el.style.backgroundColor = "#1f2937";
+        el.style.opacity = 0.3;
+        el.classList.remove("active");
+    }
+}
+
+function clearSimLeds() {
+    for (let i = 0; i < 8; i++) setSimLed(i, null);
+}
+
+function triggerSimEffect(effect, colorId, speed) {
+    if (simTimer) clearInterval(simTimer);
+    clearSimLeds();
+    const hex = getHexColor(colorId);
+    let step = 0;
+    const interval = Math.max(25, 120 - speed * 10);
+
+    simTimer = setInterval(() => {
+        step++;
+        if (effect === 10 || effect === 11 || effect === 13) {
+            // Pulse / Breathe
+            const cycle = (step % 40) / 40;
+            const brightness = Math.sin(cycle * Math.PI);
+            for (let i = 0; i < 8; i++) {
+                setSimLed(i, hex, Math.max(0.1, brightness));
+            }
+        } else if (effect === 12) {
+            // Wave
+            clearSimLeds();
+            const pos = step % 16;
+            const ledIdx = pos < 8 ? pos : 15 - pos;
+            setSimLed(ledIdx, hex, 1);
+            if (ledIdx > 0) setSimLed(ledIdx - 1, hex, 0.4);
+            if (ledIdx < 7) setSimLed(ledIdx + 1, hex, 0.4);
+        } else if (effect === 14) {
+            // Rainbow
+            const rainbowColors = ["#ff3b30", "#ffcc00", "#34c759", "#5ac8fa", "#007aff", "#af52de", "#ffffff"];
+            const c = rainbowColors[step % rainbowColors.length];
+            for (let i = 0; i < 8; i++) setSimLed(i, c, 1);
+        } else if (effect === 15) {
+            // Slot Chase
+            clearSimLeds();
+            const pos = step % 14;
+            const ledIdx = pos < 8 ? pos : 14 - pos;
+            setSimLed(ledIdx, hex, 1);
+        } else if (effect === 16) {
+            // Sparkle
+            clearSimLeds();
+            setSimLed(Math.floor(Math.random() * 8), hex, 1);
+            setSimLed(Math.floor(Math.random() * 8), hex, 0.8);
+        } else if (effect === 18) {
+            // Symmetric burst
+            clearSimLeds();
+            const p = step % 8;
+            const dist = p < 4 ? p : 7 - p;
+            setSimLed(3 - dist, hex, 1);
+            setSimLed(4 + dist, hex, 1);
+        } else if (effect === 19) {
+            // Strobe
+            clearSimLeds();
+            if ((step % 4) < 2) for (let i = 0; i < 8; i++) setSimLed(i, hex, 1);
+        } else if (effect === 20) {
+            // Heartbeat
+            clearSimLeds();
+            const beat = step % 20;
+            if (beat === 0 || beat === 1) for (let i = 0; i < 8; i++) setSimLed(i, hex, 1);
+            else if (beat === 4 || beat === 5 || beat === 6) for (let i = 0; i < 8; i++) setSimLed(i, hex, 0.8);
+        } else if (effect === 21) {
+            // Police
+            clearSimLeds();
+            if ((step % 6) < 3) {
+                for (let i = 0; i < 4; i++) setSimLed(i, "#ff3b30", 1);
+            } else {
+                for (let i = 4; i < 8; i++) setSimLed(i, "#007aff", 1);
+            }
+        } else if (effect === 22) {
+            // Fire
+            clearSimLeds();
+            const fireCols = ["#ff3b30", "#ff9500", "#ffcc00", "#ffffff"];
+            for (let i = 0; i < 8; i++) {
+                if (Math.random() > 0.4) setSimLed(i, fireCols[Math.floor(Math.random() * fireCols.length)], 0.9);
+            }
+        } else if (effect === 23) {
+            // Matrix
+            clearSimLeds();
+            const p = step % 8;
+            setSimLed(p, "#00ff87", 1);
+            if (p > 0) setSimLed(p - 1, "#00ff87", 0.4);
+        } else if (effect === 17) {
+            // Solid
+            for (let i = 0; i < 8; i++) setSimLed(i, hex, 1);
+        } else {
+            clearSimLeds();
+        }
+    }, interval);
+}
+
+function startSimulator() {
+    triggerSimEffect(state.connect.effect, state.connect.color, state.connect.speed);
+}
+
+/**
+ * LOGGING
+ */
+function log(msg) {
+    const el = document.getElementById("logTerminal");
+    const time = new Date().toLocaleTimeString();
+    el.innerText += `\n[${time}] ${msg}`;
+    el.scrollTop = el.scrollHeight;
+}
+
+function clearLog() {
+    document.getElementById("logTerminal").innerText = "[Лог очищен]";
+}
+
+// Run on page load
+window.addEventListener("DOMContentLoaded", initUI);
 </script>
 </body>
 </html>
+
