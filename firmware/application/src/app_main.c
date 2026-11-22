@@ -1132,6 +1132,10 @@ static void ble_passkey_init(void) {
 /**@brief Application main function.
  */
 int main(void) {
+    custom_anim_play_connect(); // Запускает выбранную анимацию (например, белую пульсацию)
+    custom_anim_init();
+    custom_anim_idle_step(); // Фоновое дыхание/анимация ожидания
+    
     hw_connect_init();        // Remember to initialize the pins first
 
     fds_util_init();          // Initialize fds tool
