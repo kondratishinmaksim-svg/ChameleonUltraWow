@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Chameleon Ultra - LED Control</title>
+  <style>
+    :root {
+      --bg: #0f172a;
+      --card-bg: #1e293b;
+      --accent: #38bdf8;
+      --accent-hover: #0284c7;
+      --text: #f8fafc;
+      --text-muted: #94a3b8;
+      --border: #334155;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; }
+    body { background-color: var(--bg); color: var(--text); padding: 16px; display: flex; justify-content: center; }
+    .container { width: 100%; max-width: 500px; display: flex; flex-direction: column; gap: 16px; }
+    .header { text-align: center; margin-bottom: 8px; }
+    .header h1 { font-size: 1.4rem; color: var(--accent); margin-bottom: 4px; }
+    .header p { font-size: 0.85rem; color: var(--text-muted); }
+    .card { background: var(--card-bg); border: 1px solid var(--border); border-radius: 12px; padding: 16px; display: flex; flex-direction: column; gap: 14px; }
+    .card h2 { font-size: 1.05rem; display: flex; align-items: center; gap: 8px; border-bottom: 1px solid var(--border); padding-bottom: 8px; }
+    .form-group { display: flex; flex-direction: column; gap: 6px; }
+    label { font-size: 0.85rem; color: var(--text-muted); }
+    select, input[type="range"] {
+      width: 100%; padding: 10px; border-radius: 8px; border: 1px solid var(--border);
+      background: #0f172a; color: var(--text); font-size: 0.95rem; outline: none;
+    }
+    .btn {
+      background: var(--accent); color: #0f172a; border: none; border-radius: 8px;
+      padding: 12px 16px; font-weight: 600; font-size: 0.95rem; cursor: pointer;
+      display: flex; align-items: center; justify-content: center; gap: 8px;
+      transition: background 0.2s;
+    }
+    .btn:active { transform: scale(0.98); }
+    .btn-secondary { background: transparent; border: 1px solid var(--accent); color: var(--accent); }
+    .btn-group { display: flex; gap: 10px; }
+    .btn-group .btn { flex: 1; }
+    .status-bar { font-size: 0.85rem; padding: 10px 14px; border-radius: 8px; background: #1e293b; border: 1px solid var(--border); text-align: center; }
+    .status-bar.connected { border-color: #22c55e; color: #4ade80; }
+    .status-bar.disconnected { border-color: #ef4444; color: #f87171; }
+  </style>
+</head>
+<body>
+
+<div class="container">
+  <div class="header">
+    <h1>🦎 Chameleon Ultra LED</h1>
+    <p>Настройка подсветки и анимаций</p>
+  </div>
+
+  <div id="status" class="status-bar disconnected">Не подключено</div>
+
+  <div class="card">
+    <h2>📡 Подключение</h2>
+    <button id="btnConnectBle" class="btn">⚡ Подключить через Bluetooth</button>
+  </div>
+
+  <div class="card">
+    <h2>💳 При поднесении к считывателю</h2>
+    <div class="form-group">
+      <label>Анимация при чтении:</label>
+      <select id="connEffect">
+        <option value="10" selected>Белая мягкая пульсация</option>
+        <option value="11">Пульсация выбранным цветом</option>
+        <option value="18">Симметричная вспышка</option>
+        <option value="19">Стробоскоп</option>
+        <option value="20">Двойной пульс (сердце)</option>
+        <option value="14">Радуга</option>
+        <option value="21">Полиция</option>
+        <option value="22">Огонь</option>
+        <option value="23">Матрица</option>
+        <option value="0">Выключено</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Цвет эффекта:</label>
+      <select id="connColor">
+        <option value="6" selected>Белый (White)</option>
+        <option value="0">Красный (Red)</option>
+        <option value="1">Зеленый (Green)</option>
+        <option value="2">Синий (Blue)</option>
+        <option value="3">Пурпурный (Magenta)</option>
+        <option value="4">Желтый (Yellow)</option>
+        <option value="5">Бирюзовый (Cyan)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Скорость: <span id="connSpeedVal">7</span></label>
+      <input type="range" id="connSpeed" min="1" max="10" value="7">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>💤 Фоновый режим (в покое)</h2>
+    <div class="form-group">
+      <label>Фоновая анимация:</label>
+      <select id="idleEffect">
+        <option value="15" selected>Бегущий огонёк слотов</option>
+        <option value="13">Плавное дыхание</option>
+        <option value="14">Цикличная радуга</option>
+        <option value="21">Полицейский маяк</option>
+        <option value="16">Мерцающие искры</option>
+        <option value="22">Пламя</option>
+        <option value="23">Матрица</option>
+        <option value="17">Статичный свет</option>
+        <option value="0">Выключено (полная темнота)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Фоновый цвет:</label>
+      <select id="idleColor">
+        <option value="5" selected>Бирюзовый (Cyan)</option>
+        <option value="6">Белый (White)</option>
+        <option value="2">Синий (Blue)</option>
+        <option value="1">Зеленый (Green)</option>
+        <option value="0">Красный (Red)</option>
+        <option value="3">Пурпурный (Magenta)</option>
+        <option value="4">Желтый (Yellow)</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label>Скорость фона: <span id="idleSpeedVal">5</span></label>
+      <input type="range" id="idleSpeed" min="1" max="10" value="5">
+    </div>
+    <div class="form-group">
+      <label>Яркость: <span id="brightVal">90%</span></label>
+      <input type="range" id="brightness" min="10" max="99" value="90">
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>🚀 Управление</h2>
+    <div class="btn-group">
+      <button id="btnTest" class="btn btn-secondary">▶ Тест анимации</button>
+      <button id="btnSave" class="btn">💾 Сохранить во Flash</button>
+    </div>
+  </div>
+</div>
+
+<script>
+const NUS_SERVICE = '6e400001-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_RX = '6e400002-b5a3-f393-e0a9-e50e24dcca9e';
+const NUS_TX = '6e400003-b5a3-f393-e0a9-e50e24dcca9e';
+
+let txChar = null;
+const statusEl = document.getElementById('status');
+
+function encodeFrame(cmd, status, data) {
+  const len = data ? data.length : 0;
+  const buf = new Uint8Array(8 + len);
+  buf[0] = 0x11; buf[1] = 0xEF;
+  buf[2] = cmd & 0xFF; buf[3] = (cmd >> 8) & 0xFF;
+  buf[4] = status & 0xFF; buf[5] = (status >> 8) & 0xFF;
+  buf[6] = len & 0xFF; buf[7] = (len >> 8) & 0xFF;
+  if (len > 0) buf.set(data, 8);
+  return buf;
+}
+
+async function sendFrame(cmd, status, data) {
+  if (!txChar) { alert('Сначала подключите Chameleon через Bluetooth!'); return; }
+  const frame = encodeFrame(cmd, status, data);
+  await txChar.writeValue(frame);
+}
+
+document.getElementById('btnConnectBle').addEventListener('click', async () => {
+  try {
+    statusEl.textContent = 'Поиск устройства...';
+    const device = await navigator.bluetooth.requestDevice({
+      acceptAllDevices: true,
+      optionalServices: [NUS_SERVICE]
+    });
+    statusEl.textContent = 'Подключение к GATT...';
+    const server = await device.gatt.connect();
+    const service = await server.getPrimaryService(NUS_SERVICE);
+    txChar = await service.getCharacteristic(NUS_RX);
+    const rxChar = await service.getCharacteristic(NUS_TX);
+    await rxChar.startNotifications();
+    statusEl.className = 'status-bar connected';
+    statusEl.textContent = '✅ Подключено: ' + (device.name || 'Chameleon Ultra');
+  } catch (err) {
+    statusEl.className = 'status-bar disconnected';
+    statusEl.textContent = 'Ошибка: ' + err.message;
+  }
+});
+
+function getConfigBytes() {
+  const b = new Uint8Array(10);
+  b[0] = parseInt(document.getElementById('connEffect').value);
+  b[1] = parseInt(document.getElementById('connColor').value);
+  b[2] = parseInt(document.getElementById('connSpeed').value);
+  b[3] = 0; b[4] = 6; b[5] = 5;
+  b[6] = parseInt(document.getElementById('idleEffect').value);
+  b[7] = parseInt(document.getElementById('idleColor').value);
+  b[8] = parseInt(document.getElementById('idleSpeed').value);
+  b[9] = parseInt(document.getElementById('brightness').value);
+  return b;
+}
+
+document.getElementById('btnSave').addEventListener('click', async () => {
+  await sendFrame(1101, 0, getConfigBytes());
+  alert('Настройки успешно сохранены в постоянную память Flash!');
+});
+
+document.getElementById('btnTest').addEventListener('click', async () => {
+  const effect = parseInt(document.getElementById('connEffect').value);
+  const color = parseInt(document.getElementById('connColor').value);
+  const speed = parseInt(document.getElementById('connSpeed').value);
+  await sendFrame(1102, 0, new Uint8Array([effect, color, speed]));
+});
+
+document.getElementById('connSpeed').oninput = (e) => document.getElementById('connSpeedVal').textContent = e.target.value;
+document.getElementById('idleSpeed').oninput = (e) => document.getElementById('idleSpeedVal').textContent = e.target.value;
+document.getElementById('brightness').oninput = (e) => document.getElementById('brightVal').textContent = e.target.value + '%';
+</script>
+</body>
+</html>
