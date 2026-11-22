@@ -8,6 +8,7 @@
 #include "app_status.h"
 #include "dataframe.h"
 #include "hw_connect.h"
+#include "nrf_gpio.h"
 #include "bsp_delay.h"
 #include <string.h>
 
