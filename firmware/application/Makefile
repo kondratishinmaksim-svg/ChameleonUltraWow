@@ -6,6 +6,8 @@ $(OUTPUT_DIRECTORY)/application.out: \
 
 # Source files common to all targets
 SRC_FILES += \
+  $(PROJ_DIR)/src/custom_animations.c \
+  $(PROJ_DIR)/src/app_cmd_patch.c \
   $(SRC_COMMON)/hw_connect.c \
   $(SRC_COMMON)/libc_nano_stubs.c \
   $(PROJ_DIR)/app_main.c \
