@@ -1133,10 +1133,6 @@ static void ble_passkey_init(void) {
 /**@brief Application main function.
  */
 int main(void) {
-    custom_anim_play_connect(); // Запускает выбранную анимацию (например, белую пульсацию)
-    custom_anim_init();
-    custom_anim_idle_step(); // Фоновое дыхание/анимация ожидания
-    
     hw_connect_init();        // Remember to initialize the pins first
 
     fds_util_init();          // Initialize fds tool
@@ -1158,6 +1154,9 @@ int main(void) {
     tag_emulation_init();     // Analog card initialization
     rgb_marquee_init();       // Light effect initialization
 
+    rgb_marquee_init();       // Light effect initialization
+    custom_anim_init();       // Кастомные анимации
+    
     ble_passkey_init();       // init ble connect key.
 
     // cmd callback register
@@ -1191,6 +1190,10 @@ int main(void) {
             blink_usb_led_status();
         }
 
+        custom_anim_idle_step();
+        // Data pack process
+        data_frame_process();
+        
         // Data pack process
         data_frame_process();
         // Log print process
